@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { PreparedReport, TransactionDraft } from '@preflight/shared'
 import { ChecksTable } from './ChecksTable.js'
+import { DocsDialog } from './DocsDialog.js'
 import { EvidenceInspector } from './EvidenceInspector.js'
 import { LandingState } from './LandingState.js'
 import { TransactionForm } from './TransactionForm.js'
@@ -59,6 +60,16 @@ describe('Flight Deck controls', () => {
     expect(screen.getByText(/no rule output exists yet/i)).toBeTruthy()
   })
 
+  it('opens factual product documentation and closes it on request', () => {
+    const onClose = vi.fn()
+    render(<DocsDialog open onClose={onClose} />)
+
+    expect(screen.getByRole('dialog', { name: 'How Celo Preflight works' })).toBeTruthy()
+    expect(screen.getByText(/preflight does not submit your transaction/i)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Close documentation' }))
+    expect(onClose).toHaveBeenCalledOnce()
+  })
+
   it('labels local inspection without implying a payment', () => {
     render(
       <TransactionForm
@@ -102,7 +113,7 @@ describe('Flight Deck controls', () => {
     render(<EvidenceInspector report={report} selectedCheck={report.checks[0]} />)
     expect(screen.getByRole('heading', { name: 'BLOCK' })).toBeTruthy()
     expect(screen.getByText('execution reverted')).toBeTruthy()
-    expect(screen.getByText(/at least one deterministic safety rule failed/i)).toBeTruthy()
+    expect(screen.getAllByText(/at least one deterministic safety rule failed/i)).toHaveLength(2)
   })
 
   it('selects a deterministic check from the table', () => {

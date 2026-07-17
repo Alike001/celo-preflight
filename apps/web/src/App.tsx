@@ -6,6 +6,7 @@ import type { PreparedReport, SupportedChainId, TransactionDraft, Verdict } from
 import { getCapabilities, getHistory, getReport, prepareReport } from './api.js'
 import { createSampleTransaction } from './sample.js'
 import { ChecksTable } from './components/ChecksTable.js'
+import { DocsDialog } from './components/DocsDialog.js'
 import { EvidenceInspector } from './components/EvidenceInspector.js'
 import { ExecutionPath } from './components/ExecutionPath.js'
 import { InspectionRail } from './components/InspectionRail.js'
@@ -39,6 +40,7 @@ export function App() {
   const [status, setStatus] = useState<FormStatus>('idle')
   const [statusMessage, setStatusMessage] = useState<string>()
   const [showLanding, setShowLanding] = useState(true)
+  const [showDocs, setShowDocs] = useState(false)
   const fromRef = useRef<HTMLInputElement>(null)
   const shouldFocusForm = useRef(false)
   const account = useAccount()
@@ -145,6 +147,7 @@ export function App() {
       <TopBar
         chainId={transaction.chainId}
         onChainChange={(chainId) => setTransaction({ ...transaction, chainId })}
+        onOpenDocs={() => setShowDocs(true)}
       />
       <main className="workspace">
         <InspectionRail
@@ -205,6 +208,7 @@ export function App() {
         </div>
         <EvidenceInspector report={report} selectedCheck={selectedCheck} landing={showLanding} />
       </main>
+      <DocsDialog open={showDocs} onClose={() => setShowDocs(false)} />
     </div>
   )
 }

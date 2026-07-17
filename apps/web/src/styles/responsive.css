@@ -19,8 +19,7 @@
     border-right: 0;
   }
 
-  .brand-tag,
-  .top-actions > a {
+  .brand-tag {
     display: none;
   }
 

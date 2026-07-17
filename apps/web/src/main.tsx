@@ -11,6 +11,7 @@ import './styles/landing.css'
 import './styles/run.css'
 import './styles/evidence.css'
 import './styles/inspector.css'
+import './styles/docs.css'
 import './styles/responsive.css'
 
 const queryClient = new QueryClient()

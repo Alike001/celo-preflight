@@ -9,9 +9,11 @@ function shortAddress(address: string) {
 export function TopBar({
   chainId,
   onChainChange,
+  onOpenDocs,
 }: {
   chainId: SupportedChainId
   onChainChange: (chainId: SupportedChainId) => void
+  onOpenDocs: () => void
 }) {
   const account = useAccount()
   const { connect, connectors, isPending } = useConnect()
@@ -40,7 +42,9 @@ export function TopBar({
         <a href="/api/health" target="_blank" rel="noreferrer">
           API
         </a>
-        <a href="#determinism">Docs</a>
+        <button className="top-link" type="button" onClick={onOpenDocs}>
+          Docs
+        </button>
         {account.isConnected ? (
           <button className="account-button" type="button" onClick={() => disconnect()}>
             <Unplug aria-hidden size={15} />

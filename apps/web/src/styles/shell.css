@@ -64,9 +64,18 @@
   text-decoration: none;
 }
 
-.top-actions > a:hover {
+.top-actions > a:hover,
+.top-link:hover {
   text-decoration: underline;
   text-underline-offset: 4px;
+}
+
+.top-link {
+  padding: 0;
+  border: 0;
+  color: #383d38;
+  background: transparent;
+  font: inherit;
 }
 
 .network-control {

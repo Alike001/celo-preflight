@@ -115,3 +115,14 @@ test('opens the manual transaction form without an extra route', async ({ page }
   await expect(page.getByRole('heading', { name: 'Inspect before you sign' })).toBeVisible()
   await expect(page.getByRole('textbox', { name: 'From' })).toBeFocused()
 })
+
+test('opens real product documentation from the application bar', async ({ page }) => {
+  await mockApi(page)
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Docs' }).click()
+
+  await expect(page.getByRole('dialog', { name: 'How Celo Preflight works' })).toBeVisible()
+  await expect(page.getByText(/preflight does not submit your transaction/i)).toBeVisible()
+  await page.getByRole('button', { name: 'Close documentation' }).click()
+  await expect(page.getByRole('dialog')).toBeHidden()
+})
