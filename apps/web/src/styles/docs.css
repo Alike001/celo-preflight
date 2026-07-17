@@ -157,6 +157,81 @@
   font-weight: 700;
 }
 
+.verifier-dialog {
+  width: min(760px, 100%);
+}
+
+.verifier-input {
+  display: grid;
+  gap: 6px;
+  color: #454a45;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.verifier-input textarea {
+  width: 100%;
+  min-height: 240px;
+  padding: 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  background: var(--canvas);
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.verifier-button {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--ink);
+  border-radius: 3px;
+  background: var(--yellow);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.verification-good,
+.verification-bad {
+  display: grid;
+  gap: 7px;
+  padding: 12px;
+  border-left: 3px solid var(--green);
+  background: #eef8ef;
+  font-size: 12px;
+}
+
+.verification-bad {
+  border-color: var(--red);
+  background: #fff0ef;
+}
+
+.verification-good strong,
+.verification-bad strong {
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.verification-good ul,
+.verification-bad ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.verifier-error {
+  margin: 0;
+  color: var(--red);
+  font-size: 12px;
+}
+
 @media (max-width: 767px) {
   .docs-backdrop {
     align-items: end;

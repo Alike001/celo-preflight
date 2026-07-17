@@ -34,6 +34,7 @@ const config: ApiConfig = {
   port: 0,
   dataDir: '.data-test-unused',
   rpcUrls: { 42220: 'http://unused', 11142220: 'http://unused' },
+  requiredAttributionCode: 'celo_preflight_test',
 }
 
 const payment: PaymentCapability = {
@@ -75,8 +76,22 @@ describe('Celo Preflight API', () => {
     expect(response.body).toMatchObject({
       localFree: true,
       hostedPaid: false,
+      attribution: { configured: true, requiredCode: 'celo_preflight_test' },
       payment: { unavailableReason: 'Not configured for tests.' },
     })
+  })
+
+  it('publishes an agent-facing proposal contract without claiming it broadcasts', async () => {
+    const response = await request(app).get('/api/openapi.json')
+    expect(response.status).toBe(200)
+    expect(response.body.paths).toHaveProperty('/api/preflight/prepare')
+    expect(response.body.paths).toHaveProperty('/api/mento/live-usdm-kesm-proposal')
+  })
+
+  it('validates Mento proposal input before attempting a live route', async () => {
+    const response = await request(app).post('/api/mento/live-usdm-kesm-proposal').send({})
+    expect(response.status).toBe(400)
+    expect(response.body.issues).toContain('owner must be a 20-byte hex address')
   })
 
   it('rejects an invalid transaction before inspection', async () => {

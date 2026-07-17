@@ -6,7 +6,7 @@ const transferAbi = parseAbi([
   'function transfer(address recipient, uint256 amount) returns (bool)',
 ])
 
-export function createSampleTransaction(): TransactionDraft {
+export function createSampleTransaction(requiredAttributionCode?: string): TransactionDraft {
   const call = encodeFunctionData({
     abi: transferAbi,
     functionName: 'transfer',
@@ -17,6 +17,6 @@ export function createSampleTransaction(): TransactionDraft {
     from: '0x1111111111111111111111111111111111111111',
     to: '0x765DE816845861e75A25fCA122bb6898B8B1282a',
     valueWei: '0',
-    data: concat([call, toDataSuffix('celo_preflight')]),
+    data: requiredAttributionCode ? concat([call, toDataSuffix(requiredAttributionCode)]) : call,
   }
 }

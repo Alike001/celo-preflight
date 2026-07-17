@@ -1,5 +1,6 @@
 import express, { type ErrorRequestHandler } from 'express'
-import type { PrepareResponse, PreparedReport } from '@preflight/shared'
+import { isAddress } from 'viem'
+import type { Address, PrepareResponse, PreparedReport } from '@preflight/shared'
 import { parseTransactionDraft, ValidationError } from '@preflight/shared'
 import { ChainInspector } from './chain-inspector.js'
 import type { ApiConfig } from './config.js'
@@ -48,7 +49,8 @@ export async function createApp(
   const signer =
     overrides.signer ?? (await ReportSigner.create(config.dataDir, config.reportSignerPrivateKey))
   const inspector = overrides.inspector ?? new ChainInspector(config)
-  const service = new ReportService(inspector, signer, reports)
+  const mentoBuilder = inspector instanceof ChainInspector ? inspector : undefined
+  const service = new ReportService(inspector, signer, reports, config.requiredAttributionCode)
   const payment = overrides.payment ?? (await createPaymentCapability(config.payment, reports))
   const mode: PrepareResponse['mode'] = payment.enabled ? 'hosted-paid' : 'local-free'
   const app = express()
@@ -69,6 +71,10 @@ export async function createApp(
     response.json({
       localFree: !payment.enabled,
       hostedPaid: payment.enabled,
+      attribution: {
+        configured: Boolean(config.requiredAttributionCode),
+        ...(config.requiredAttributionCode ? { requiredCode: config.requiredAttributionCode } : {}),
+      },
       payment: {
         network: payment.network,
         ...(payment.price ? { price: payment.price } : {}),
@@ -78,9 +84,80 @@ export async function createApp(
     })
   })
 
+  app.get('/api/openapi.json', (_request, response) => {
+    response.json({
+      openapi: '3.1.0',
+      info: {
+        title: 'Celo Preflight API',
+        version: '1.0.0',
+        description:
+          'Agent and wallet intake for unsigned Celo transaction proposals. This API never broadcasts the proposed transaction.',
+      },
+      paths: {
+        '/api/preflight/prepare': {
+          post: {
+            summary: 'Simulate and inspect an unsigned Celo transaction proposal.',
+            requestBody: {
+              required: true,
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    required: ['chainId', 'from', 'to', 'valueWei', 'data'],
+                    properties: {
+                      chainId: { enum: [42220, 11142220] },
+                      from: { type: 'string', pattern: '^0x[a-fA-F0-9]{40}$' },
+                      to: { type: 'string', pattern: '^0x[a-fA-F0-9]{40}$' },
+                      valueWei: { type: 'string', pattern: '^\\d+$' },
+                      data: { type: 'string', pattern: '^0x[a-fA-F0-9]*$' },
+                      feeCurrency: { type: 'string', pattern: '^0x[a-fA-F0-9]{40}$' },
+                    },
+                  },
+                },
+              },
+            },
+            responses: {
+              '201': { description: 'Signed inspection report or a hosted claim requirement.' },
+              '400': { description: 'Invalid unsigned transaction proposal.' },
+              '503': { description: 'Celo state could not be inspected.' },
+            },
+          },
+        },
+        '/api/mento/live-usdm-kesm-proposal': {
+          post: {
+            summary: 'Build a current unsigned USDm-to-KESm Mento proposal from live chain data.',
+            description:
+              'Returns a proposal only. The caller must separately inspect it and decide whether to sign; this API never broadcasts.',
+          },
+        },
+      },
+    })
+  })
+
   app.post('/api/preflight/prepare', async (request, response) => {
     const transaction = parseTransactionDraft(request.body)
     response.status(201).json(await service.prepare(transaction, mode))
+  })
+
+  app.post('/api/mento/live-usdm-kesm-proposal', async (request, response) => {
+    const owner = request.body?.owner
+    const amountInWei = request.body?.amountInWei
+    if (typeof owner !== 'string' || !isAddress(owner)) {
+      throw new ValidationError(['owner must be a 20-byte hex address'])
+    }
+    if (typeof amountInWei !== 'string' || !/^\d+$/.test(amountInWei)) {
+      throw new ValidationError(['amountInWei must be an integer string'])
+    }
+    if (!mentoBuilder) {
+      throw new HttpError(503, 'Live Mento proposal building is unavailable in this API runtime.')
+    }
+    response.json(
+      await mentoBuilder.buildLiveMentoProposal(
+        owner as Address,
+        BigInt(amountInWei),
+        config.requiredAttributionCode,
+      ),
+    )
   })
 
   app.get('/api/reports', (request, response) => {

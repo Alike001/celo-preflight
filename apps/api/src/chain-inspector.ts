@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module'
-import { fromDataSuffix } from '@celo/attribution-tags'
+import { fromDataSuffix, toDataSuffix } from '@celo/attribution-tags'
 import type { Mento as MentoClient } from '@mento-protocol/mento-sdk'
-import { parseAbi, type PublicClient } from 'viem'
+import { concat, parseAbi, type PublicClient } from 'viem'
 import type { Address, InspectionFacts, SimulationFact, TransactionDraft } from '@preflight/shared'
 import { decodeTransaction, FEE_CURRENCY_DIRECTORY, mentoRouterAbi } from '@preflight/engine'
 import { createChainClient } from './chain-client.js'
@@ -12,7 +12,26 @@ import type { ApiConfig } from './config.js'
 const feeCurrencyDirectoryAbi = parseAbi(['function getCurrencies() view returns (address[])'])
 const require = createRequire(import.meta.url)
 // The inspected 3.3 beta ESM bundle omits extension suffixes; its documented CJS export is valid.
-const { Mento } = require('@mento-protocol/mento-sdk') as { Mento: typeof MentoClient }
+const { Mento, deadlineFromMinutes } = require('@mento-protocol/mento-sdk') as {
+  Mento: typeof MentoClient
+  deadlineFromMinutes: (minutes: number) => bigint
+}
+
+const USDm = '0x765DE816845861e75A25fCA122bb6898B8B1282a' as Address
+const KESm = '0x456a3D042C0DbD3db53D5489e98dFb038553B0d0' as Address
+
+export interface MentoProposal {
+  transaction: TransactionDraft
+  approvalRequired: boolean
+  quote: {
+    amountIn: string
+    expectedAmountOut: string
+    minimumAmountOut: string
+    deadline: string
+    hops: number
+    tradable: boolean
+  }
+}
 
 function isRevert(error: unknown): boolean {
   const message = errorMessage(error).toLowerCase()
@@ -154,5 +173,52 @@ export class ChainInspector {
     if (allowed !== undefined) facts.feeCurrencyAllowed = allowed
     await enrichMento(client, facts, block.number)
     return facts
+  }
+
+  /** Builds, but never sends, a current USDm → KESm Mento swap proposal. */
+  async buildLiveMentoProposal(
+    owner: Address,
+    amountIn: bigint,
+    requiredAttributionCode?: string,
+  ): Promise<MentoProposal> {
+    if (amountIn <= 0n) throw new HttpError(400, 'amountInWei must be greater than zero.')
+    const client = createChainClient(42220, this.config.rpcUrls[42220])
+    try {
+      const mento = await Mento.create(42220, client as unknown as PublicClient)
+      const route = await mento.routes.findRoute(USDm, KESm, { cached: false })
+      const tradable = await mento.trading.isRouteTradable(route)
+      const { approval, swap } = await mento.swap.buildSwapTransaction(
+        USDm,
+        KESm,
+        amountIn,
+        owner,
+        owner,
+        { slippageTolerance: 0.5, deadline: deadlineFromMinutes(5) },
+        route,
+      )
+      const data = requiredAttributionCode
+        ? concat([swap.params.data as `0x${string}`, toDataSuffix(requiredAttributionCode)])
+        : (swap.params.data as `0x${string}`)
+      return {
+        transaction: {
+          chainId: 42220,
+          from: owner,
+          to: swap.params.to as Address,
+          valueWei: BigInt(swap.params.value).toString(),
+          data,
+        },
+        approvalRequired: approval !== null,
+        quote: {
+          amountIn: swap.amountIn.toString(),
+          expectedAmountOut: swap.expectedAmountOut.toString(),
+          minimumAmountOut: swap.amountOutMin.toString(),
+          deadline: swap.deadline.toString(),
+          hops: route.path.length,
+          tradable,
+        },
+      }
+    } catch (error) {
+      throw new HttpError(503, 'Mento could not build a live swap proposal.', errorMessage(error))
+    }
   }
 }

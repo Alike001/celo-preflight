@@ -3,7 +3,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAccount, usePublicClient, useSwitchChain, useWalletClient } from 'wagmi'
 import type { PublicClient, WalletClient } from 'viem'
 import type { PreparedReport, SupportedChainId, TransactionDraft, Verdict } from '@preflight/shared'
-import { getCapabilities, getHistory, getReport, prepareReport } from './api.js'
+import {
+  getCapabilities,
+  getHistory,
+  getLiveMentoProposal,
+  getReport,
+  prepareReport,
+} from './api.js'
 import { createSampleTransaction } from './sample.js'
 import { ChecksTable } from './components/ChecksTable.js'
 import { DocsDialog } from './components/DocsDialog.js'
@@ -139,6 +145,23 @@ export function App() {
     }
   }
 
+  async function buildMentoProposal() {
+    if (!account.address) return
+    setStatus('preparing')
+    setStatusMessage('Building a fresh USDm → KESm Mento route from current Celo state…')
+    try {
+      const proposal = await getLiveMentoProposal(account.address)
+      setTransaction(proposal.transaction)
+      setStatus('idle')
+      setStatusMessage(
+        `Live Mento route loaded: ${proposal.quote.hops} hop, ${proposal.quote.tradable ? 'tradable' : 'not tradable'}, ${proposal.approvalRequired ? 'approval required before swap.' : 'no approval required.'}`,
+      )
+    } catch (error) {
+      setStatus('error')
+      setStatusMessage(message(error))
+    }
+  }
+
   const selectedCheck = report?.checks.find((check) => check.id === selectedCheckId)
   const capabilityMessage = capabilities.error ? message(capabilities.error) : undefined
 
@@ -162,7 +185,7 @@ export function App() {
           {showLanding ? (
             <LandingState
               onRunSample={() => {
-                const sample = createSampleTransaction()
+                const sample = createSampleTransaction(capabilities.data?.attribution.requiredCode)
                 setTransaction(sample)
                 void runPreflight(sample)
               }}
@@ -179,13 +202,22 @@ export function App() {
                 onChange={setTransaction}
                 onSubmit={() => void runPreflight()}
                 onSample={() => {
-                  setTransaction(createSampleTransaction())
+                  setTransaction(
+                    createSampleTransaction(capabilities.data?.attribution.requiredCode),
+                  )
                   setStatus('idle')
                   setStatusMessage(
-                    'Sample input loaded: a zero-value USDm transfer with an ERC-8021 suffix. The result is not precomputed.',
+                    capabilities.data?.attribution.configured
+                      ? 'Sample input loaded with the configured organizer tag. The result is not precomputed.'
+                      : 'Sample input loaded without an attribution tag. It will truthfully show that Track 1 credit is unproven.',
                   )
                 }}
                 onReset={() => setTransaction(emptyTransaction(transaction.chainId))}
+                connectedAddress={account.address}
+                onUseConnectedAddress={(address) =>
+                  setTransaction({ ...transaction, from: address })
+                }
+                onBuildMento={() => void buildMentoProposal()}
               />
               <ExecutionPath decoded={report?.facts.decoded} />
               <ChecksTable

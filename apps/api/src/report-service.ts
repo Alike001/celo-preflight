@@ -1,6 +1,11 @@
-import type { PrepareResponse, PreparedReport, TransactionDraft } from '@preflight/shared'
+import {
+  contentHash,
+  reportSigningHash,
+  type PrepareResponse,
+  type PreparedReport,
+  type TransactionDraft,
+} from '@preflight/shared'
 import { evaluateInspection, RULESET_VERSION } from '@preflight/engine'
-import { contentHash } from './canonical.js'
 import type { ChainInspector } from './chain-inspector.js'
 import type { ReportSigner } from './report-signer.js'
 import type { ReportRepository } from './report-store.js'
@@ -12,6 +17,7 @@ export class ReportService {
     private readonly inspector: Pick<ChainInspector, 'inspect'>,
     private readonly signer: Pick<ReportSigner, 'issuer' | 'sign'>,
     private readonly reports: ReportRepository,
+    private readonly requiredAttributionCode?: string,
   ) {}
 
   async prepare(
@@ -19,7 +25,9 @@ export class ReportService {
     mode: PrepareResponse['mode'],
   ): Promise<PrepareResponse> {
     const facts = await this.inspector.inspect(transaction)
-    const evaluation = evaluateInspection(facts)
+    const evaluation = evaluateInspection(facts, {
+      requiredAttributionCode: this.requiredAttributionCode,
+    })
     const requestHash = contentHash(transaction)
     const createdAt = new Date().toISOString()
     const expiresAt = new Date(Date.now() + REPORT_TTL_MS).toISOString()
@@ -40,7 +48,7 @@ export class ReportService {
       facts,
       checks: evaluation.checks,
     }
-    const signature = await this.signer.sign(contentHash(unsigned))
+    const signature = await this.signer.sign(reportSigningHash(unsigned))
     const report: PreparedReport = { ...unsigned, signature }
     this.reports.save(report)
     const prepared = {

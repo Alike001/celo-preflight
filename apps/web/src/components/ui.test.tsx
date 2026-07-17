@@ -77,6 +77,7 @@ describe('Flight Deck controls', () => {
         capabilities={{
           localFree: true,
           hostedPaid: false,
+          attribution: { configured: false },
           payment: { network: 'eip155:42220', unavailableReason: 'not configured' },
         }}
         status="idle"
@@ -97,6 +98,7 @@ describe('Flight Deck controls', () => {
         capabilities={{
           localFree: false,
           hostedPaid: true,
+          attribution: { configured: true, requiredCode: 'celo_preflight_test' },
           payment: { network: 'eip155:42220', price: '$0.02' },
         }}
         status="idle"

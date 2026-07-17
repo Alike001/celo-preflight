@@ -16,11 +16,28 @@ export interface ReportSummary {
 export interface Capabilities {
   localFree: boolean
   hostedPaid: boolean
+  attribution: {
+    configured: boolean
+    requiredCode?: string
+  }
   payment: {
     network: string
     price?: string
     payTo?: `0x${string}`
     unavailableReason?: string
+  }
+}
+
+export interface MentoProposal {
+  transaction: TransactionDraft
+  approvalRequired: boolean
+  quote: {
+    amountIn: string
+    expectedAmountOut: string
+    minimumAmountOut: string
+    deadline: string
+    hops: number
+    tradable: boolean
   }
 }
 
@@ -53,6 +70,16 @@ export async function prepareReport(transaction: TransactionDraft): Promise<Prep
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(transaction),
+    }),
+  )
+}
+
+export async function getLiveMentoProposal(owner: `0x${string}`): Promise<MentoProposal> {
+  return json(
+    await fetch('/api/mento/live-usdm-kesm-proposal', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ owner, amountInWei: '10000000000000000' }),
     }),
   )
 }

@@ -68,6 +68,7 @@ async function mockApi(page: Page) {
       await json({
         localFree: true,
         hostedPaid: false,
+        attribution: { configured: true, requiredCode: 'celo_preflight' },
         payment: { network: 'eip155:42220', unavailableReason: 'Not configured for tests.' },
       })
       return

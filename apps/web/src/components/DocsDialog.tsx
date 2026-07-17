@@ -89,6 +89,9 @@ export function DocsDialog({ open, onClose }: { open: boolean; onClose: () => vo
             <a href="/api/health" target="_blank" rel="noreferrer">
               Check the running API <ExternalLink aria-hidden size={13} />
             </a>
+            <a href="/api/openapi.json" target="_blank" rel="noreferrer">
+              Open agent and wallet API <ExternalLink aria-hidden size={13} />
+            </a>
           </section>
         </div>
       </section>

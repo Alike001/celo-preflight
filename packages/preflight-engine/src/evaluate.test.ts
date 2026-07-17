@@ -4,6 +4,7 @@ import { MAX_UINT256 } from './constants.js'
 import { evaluateInspection, verdictFromChecks } from './evaluate.js'
 
 const address = (digit: string) => `0x${digit.repeat(40)}` as const
+const assignedCode = 'celo_preflight_test'
 
 function baseFacts(overrides: Partial<InspectionFacts> = {}): InspectionFacts {
   return {
@@ -46,18 +47,24 @@ function mentoFacts(
 }
 
 function check(facts: InspectionFacts, id: string): CheckEvidence {
-  const found = evaluateInspection(facts).checks.find((item) => item.id === id)
+  const found = evaluateInspection(facts, { requiredAttributionCode: assignedCode }).checks.find(
+    (item) => item.id === id,
+  )
   if (!found) throw new Error(`Missing check ${id}`)
   return found
 }
 
 describe('deterministic evaluation', () => {
   it('returns CLEAR when every applicable rule passes', () => {
-    expect(evaluateInspection(baseFacts()).verdict).toBe('CLEAR')
+    expect(evaluateInspection(baseFacts(), { requiredAttributionCode: assignedCode }).verdict).toBe(
+      'CLEAR',
+    )
   })
 
   it('returns CAUTION when attribution is missing', () => {
-    const result = evaluateInspection(baseFacts({ attributionCodes: [] }))
+    const result = evaluateInspection(baseFacts({ attributionCodes: [] }), {
+      requiredAttributionCode: assignedCode,
+    })
     expect(result.verdict).toBe('CAUTION')
     expect(result.checks.at(-1)).toMatchObject({
       id: 'ERC_8021',
@@ -95,7 +102,9 @@ describe('deterministic evaluation', () => {
       status: 'WARN',
       summary: 'Unsupported',
     })
-    expect(evaluateInspection(facts).verdict).toBe('CAUTION')
+    expect(evaluateInspection(facts, { requiredAttributionCode: assignedCode }).verdict).toBe(
+      'CAUTION',
+    )
   })
 
   it.each([
@@ -112,11 +121,15 @@ describe('deterministic evaluation', () => {
       },
     })
     expect(check(facts, 'APPROVAL_SCOPE').status).toBe(status)
-    expect(evaluateInspection(facts).verdict).toBe(verdict)
+    expect(evaluateInspection(facts, { requiredAttributionCode: assignedCode }).verdict).toBe(
+      verdict,
+    )
   })
 
   it('passes a fully evidenced Mento route', () => {
-    expect(evaluateInspection(mentoFacts()).verdict).toBe('CLEAR')
+    expect(
+      evaluateInspection(mentoFacts(), { requiredAttributionCode: assignedCode }).verdict,
+    ).toBe('CLEAR')
     expect(check(mentoFacts(), 'MENTO_TRADABILITY').status).toBe('PASS')
     expect(check(mentoFacts(), 'SLIPPAGE_DEADLINE').details.slippageBps).toBe('100')
   })
@@ -133,19 +146,25 @@ describe('deterministic evaluation', () => {
   ] as const)('classifies Mento evidence deterministically', (override, id, status, verdict) => {
     const facts = mentoFacts(override)
     expect(check(facts, id).status).toBe(status)
-    expect(evaluateInspection(facts).verdict).toBe(verdict)
+    expect(evaluateInspection(facts, { requiredAttributionCode: assignedCode }).verdict).toBe(
+      verdict,
+    )
   })
 
   it('warns when live Mento tradability evidence is missing', () => {
     const facts = mentoFacts({}, 'tradable')
     expect(check(facts, 'MENTO_TRADABILITY').status).toBe('WARN')
-    expect(evaluateInspection(facts).verdict).toBe('CAUTION')
+    expect(evaluateInspection(facts, { requiredAttributionCode: assignedCode }).verdict).toBe(
+      'CAUTION',
+    )
   })
 
   it('warns when a Mento snapshot quote is missing', () => {
     const facts = mentoFacts({}, 'quote')
     expect(check(facts, 'SLIPPAGE_DEADLINE').status).toBe('WARN')
-    expect(evaluateInspection(facts).verdict).toBe('CAUTION')
+    expect(evaluateInspection(facts, { requiredAttributionCode: assignedCode }).verdict).toBe(
+      'CAUTION',
+    )
   })
 
   it.each([
@@ -164,7 +183,9 @@ describe('deterministic evaluation', () => {
         ...(allowed === undefined ? {} : { feeCurrencyAllowed: allowed }),
       })
       expect(check(facts, 'FEE_CURRENCY').status).toBe(status)
-      expect(evaluateInspection(facts).verdict).toBe(verdict)
+      expect(evaluateInspection(facts, { requiredAttributionCode: assignedCode }).verdict).toBe(
+        verdict,
+      )
     },
   )
 
@@ -179,5 +200,24 @@ describe('deterministic evaluation', () => {
     expect(verdictFromChecks([item('PASS')])).toBe('CLEAR')
     expect(verdictFromChecks([item('PASS'), item('WARN')])).toBe('CAUTION')
     expect(verdictFromChecks([item('WARN'), item('FAIL')])).toBe('BLOCK')
+  })
+
+  it('does not treat an arbitrary attribution suffix as Track 1 credit', () => {
+    const result = evaluateInspection(baseFacts(), { requiredAttributionCode: 'celo_assigned_tag' })
+    expect(result.verdict).toBe('CAUTION')
+    expect(result.checks.at(-1)).toMatchObject({
+      id: 'ERC_8021',
+      status: 'WARN',
+      details: { requiredCode: 'celo_assigned_tag', observedCodes: ['celo_preflight_test'] },
+    })
+  })
+
+  it('marks Track 1 credit unproven when no assigned tag is configured', () => {
+    const result = evaluateInspection(baseFacts())
+    expect(result.verdict).toBe('CAUTION')
+    expect(result.checks.at(-1)).toMatchObject({
+      id: 'ERC_8021',
+      status: 'WARN',
+    })
   })
 })

@@ -143,7 +143,11 @@ importers:
         specifier: 2.55.2
         version: 2.55.2(typescript@6.0.2)(zod@3.25.76)
 
-  packages/shared: {}
+  packages/shared:
+    dependencies:
+      viem:
+        specifier: 2.55.2
+        version: 2.55.2(typescript@6.0.2)(zod@3.25.76)
 
 packages:
 

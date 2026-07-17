@@ -1,6 +1,15 @@
-import { Braces, FlaskConical, LoaderCircle, Play, RotateCcw } from 'lucide-react'
-import { forwardRef } from 'react'
-import type { TransactionDraft } from '@preflight/shared'
+import {
+  Braces,
+  FileInput,
+  FlaskConical,
+  Landmark,
+  LoaderCircle,
+  Play,
+  RotateCcw,
+  Wallet,
+} from 'lucide-react'
+import { forwardRef, useState } from 'react'
+import { parseTransactionDraft, type TransactionDraft } from '@preflight/shared'
 import type { Capabilities } from '../api.js'
 
 export type FormStatus =
@@ -20,6 +29,9 @@ export interface TransactionFormProps {
   onSubmit: () => void
   onSample: () => void
   onReset: () => void
+  connectedAddress?: `0x${string}` | undefined
+  onUseConnectedAddress?: (address: `0x${string}`) => void
+  onBuildMento?: () => void
 }
 
 function update<K extends keyof TransactionDraft>(
@@ -34,9 +46,24 @@ function update<K extends keyof TransactionDraft>(
 
 export const TransactionForm = forwardRef<HTMLInputElement, TransactionFormProps>(
   function TransactionForm(
-    { value, capabilities, status, message, onChange, onSubmit, onSample, onReset },
+    {
+      value,
+      capabilities,
+      status,
+      message,
+      onChange,
+      onSubmit,
+      onSample,
+      onReset,
+      connectedAddress,
+      onUseConnectedAddress,
+      onBuildMento,
+    },
     fromRef,
   ) {
+    const [showImport, setShowImport] = useState(false)
+    const [proposal, setProposal] = useState('')
+    const [importError, setImportError] = useState<string>()
     const busy = ['preparing', 'signing-payment'].includes(status)
     const paid = capabilities?.hostedPaid === true
     const action = paid
@@ -51,6 +78,14 @@ export const TransactionForm = forwardRef<HTMLInputElement, TransactionFormProps
             <h2 id="transaction-heading">Inspect before you sign</h2>
           </div>
           <div className="form-tools">
+            <button type="button" onClick={() => setShowImport((current) => !current)}>
+              <FileInput aria-hidden size={14} /> Import JSON
+            </button>
+            {connectedAddress && onBuildMento && (
+              <button type="button" onClick={onBuildMento}>
+                <Landmark aria-hidden size={14} /> Live Mento route
+              </button>
+            )}
             <button type="button" onClick={onSample} title="Load labeled sample input">
               <FlaskConical aria-hidden size={14} /> Sample input
             </button>
@@ -63,6 +98,37 @@ export const TransactionForm = forwardRef<HTMLInputElement, TransactionFormProps
           Paste an unsigned Celo call. Preflight simulates it and publishes every rule behind the
           verdict.
         </p>
+        {showImport && (
+          <section className="proposal-import" aria-label="Import unsigned transaction proposal">
+            <label>
+              <span>Unsigned transaction proposal JSON</span>
+              <textarea
+                value={proposal}
+                onChange={(event) => setProposal(event.target.value)}
+                placeholder='{"chainId":42220,"from":"0x…","to":"0x…","valueWei":"0","data":"0x"}'
+                spellCheck={false}
+                rows={4}
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  onChange(parseTransactionDraft(JSON.parse(proposal)))
+                  setImportError(undefined)
+                  setShowImport(false)
+                } catch (error) {
+                  setImportError(
+                    error instanceof Error ? error.message : 'Invalid transaction proposal.',
+                  )
+                }
+              }}
+            >
+              Load proposal
+            </button>
+            {importError && <p role="alert">{importError}</p>}
+          </section>
+        )}
         <form
           className="transaction-form"
           onSubmit={(event) => {
@@ -86,6 +152,15 @@ export const TransactionForm = forwardRef<HTMLInputElement, TransactionFormProps
                 spellCheck={false}
                 required
               />
+              {connectedAddress && onUseConnectedAddress && (
+                <button
+                  className="wallet-fill"
+                  type="button"
+                  onClick={() => onUseConnectedAddress(connectedAddress)}
+                >
+                  <Wallet aria-hidden size={12} /> Use connected wallet
+                </button>
+              )}
             </label>
             <label>
               <span>To</span>

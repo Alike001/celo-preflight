@@ -252,26 +252,3 @@ export function feeCurrencyRule(facts: InspectionFacts): CheckEvidence {
     { feeCurrency },
   )
 }
-
-export function attributionRule(facts: InspectionFacts): CheckEvidence {
-  if (facts.attributionCodes.length > 0) {
-    return evidence(
-      'ERC_8021',
-      'ERC-8021 attribution',
-      'PASS',
-      'Attribution suffix data is present.',
-      {
-        codes: facts.attributionCodes,
-      },
-    )
-  }
-  return evidence(
-    'ERC_8021',
-    'ERC-8021 attribution',
-    'WARN',
-    'No ERC-8021 attribution code was found.',
-    {
-      impact: 'The transaction can execute, but Track 1 activity may not be credited.',
-    },
-  )
-}

@@ -5,6 +5,7 @@ export interface ApiConfig {
   dataDir: string
   rpcUrls: Record<42220 | 11142220, string>
   reportSignerPrivateKey?: `0x${string}`
+  requiredAttributionCode?: string
   payment?: {
     facilitatorUrl: string
     payTo: Address
@@ -32,6 +33,10 @@ export function loadConfig(): ApiConfig {
     throw new Error('REPORT_SIGNER_PRIVATE_KEY must be 32-byte hex')
   }
   const payment = paymentConfig()
+  const requiredAttributionCode = process.env.REQUIRED_ATTRIBUTION_TAG?.trim()
+  if (requiredAttributionCode && !/^celo_[a-zA-Z0-9_-]+$/.test(requiredAttributionCode)) {
+    throw new Error('REQUIRED_ATTRIBUTION_TAG must be an organizer-assigned celo_ attribution code')
+  }
   return {
     port: Number(process.env.PORT ?? '3001'),
     dataDir: process.env.DATA_DIR ?? '.data',
@@ -40,6 +45,7 @@ export function loadConfig(): ApiConfig {
       11142220: process.env.CELO_SEPOLIA_RPC_URL ?? 'https://forno.celo-sepolia.celo-testnet.org',
     },
     ...(signer ? { reportSignerPrivateKey: signer as `0x${string}` } : {}),
+    ...(requiredAttributionCode ? { requiredAttributionCode } : {}),
     ...(payment ? { payment } : {}),
   }
 }

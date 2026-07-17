@@ -2,6 +2,7 @@ import { Check, Clipboard, Code2, ExternalLink, FileSignature, ReceiptText } fro
 import { useState } from 'react'
 import type { CheckEvidence, PreparedReport } from '@preflight/shared'
 import { StatusIcon } from './StatusIcon.js'
+import { ReportVerifierDialog } from './ReportVerifierDialog.js'
 
 function display(value: string | boolean | number | string[]) {
   return Array.isArray(value) ? value.join(', ') : String(value)
@@ -18,6 +19,7 @@ export function EvidenceInspector({
 }) {
   const [showRaw, setShowRaw] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [showVerifier, setShowVerifier] = useState(false)
   const verdict = report?.verdict
 
   async function copyReport() {
@@ -65,6 +67,9 @@ export function EvidenceInspector({
             onClick={() => setShowRaw((current) => !current)}
           >
             <Code2 aria-hidden /> {showRaw ? 'Hide raw' : 'View raw simulation'}
+          </button>
+          <button type="button" disabled={!report} onClick={() => setShowVerifier(true)}>
+            <FileSignature aria-hidden /> Verify signature
           </button>
         </div>
       </section>
@@ -152,6 +157,11 @@ export function EvidenceInspector({
           Verify runtime <ExternalLink aria-hidden />
         </a>
       </section>
+      <ReportVerifierDialog
+        open={showVerifier}
+        report={report}
+        onClose={() => setShowVerifier(false)}
+      />
     </aside>
   )
 }

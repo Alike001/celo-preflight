@@ -24,7 +24,7 @@ No wallet, private key, contract deployment, or environment configuration is req
 - dangerous ERC-20 approvals, including unlimited allowance;
 - current Mento Router routes, quotes, trading state, slippage, and deadlines;
 - Celo fee-currency directory support;
-- ERC-8021 attribution suffix presence.
+- the exact organizer-assigned ERC-8021 attribution suffix needed for Track 1 credit.
 
 Any failed safety proof produces `BLOCK`. Missing or ambiguous evidence produces `CAUTION`. Only fully supported applicable evidence produces `CLEAR`.
 
@@ -49,4 +49,8 @@ The public Celo facilitator was not DNS-reachable from this environment on July 
 
 Every report includes its normalized request hash, chain and snapshot state, ruleset version, individual checks, issuer, expiry, and ECDSA signature. In local development an unfunded report-signing key is generated under `.data/`; production should inject a dedicated `REPORT_SIGNER_PRIVATE_KEY` and use a persistent `DATA_DIR`.
 
-See [`design.doc.md`](design.doc.md) for the accepted product design and [`research/domain-knowledge.md`](research/domain-knowledge.md) for the Celo-specific research behind the product choice.
+The report inspector includes a browser-only **Verify signature** tool that recomputes a report hash and recovers the signing address without calling the Preflight server. Wallets and agents can submit the same unsigned proposal shape through [`/api/openapi.json`](/api/openapi.json); the API only simulates and reports—it never broadcasts the proposal.
+
+For a live Mento proof, `POST /api/mento/live-usdm-kesm-proposal` with an `owner` address and positive `amountInWei`. It queries a fresh USDm → KESm route, current tradability, a quote, minimum output, deadline, and any required approval before returning an unsigned proposal for normal preflight. It does not invent a route or submit the swap.
+
+Set `REQUIRED_ATTRIBUTION_TAG` to the exact organizer-assigned `celo_…` tag before attempting Track 1 activity. A different tag, or merely any attribution suffix, does not receive this project's credit.

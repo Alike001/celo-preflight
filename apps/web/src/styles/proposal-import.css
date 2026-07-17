@@ -1,0 +1,55 @@
+.proposal-import {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+  margin-top: 13px;
+  padding: 10px;
+  border: 1px dashed var(--border-strong);
+  background: var(--canvas);
+}
+
+.proposal-import label {
+  display: grid;
+  gap: 5px;
+  color: #454a45;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.proposal-import textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  background: var(--white);
+  font-family: var(--mono);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.proposal-import button,
+.wallet-fill {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  background: var(--white);
+  font-size: 9px;
+}
+
+.proposal-import p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--red);
+  font-size: 10px;
+}
+
+.wallet-fill {
+  margin-top: 6px;
+  color: #454a45;
+}
