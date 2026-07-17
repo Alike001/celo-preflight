@@ -1,0 +1,241 @@
+@media (max-width: 1279px) {
+  .workspace {
+    grid-template-columns: 210px minmax(500px, 1fr);
+  }
+
+  .inspector {
+    position: fixed;
+    z-index: 8;
+    top: 64px;
+    right: 0;
+    width: min(390px, 44vw);
+    height: calc(100vh - 64px);
+    border-left: 1px solid var(--border-strong);
+    box-shadow: -12px 0 24px rgb(17 20 17 / 8%);
+  }
+
+  .center-pane {
+    padding-right: min(390px, 44vw);
+    border-right: 0;
+  }
+
+  .brand-tag,
+  .top-actions > a {
+    display: none;
+  }
+
+  .landing-intro,
+  .landing-workflow,
+  .landing-assurances {
+    padding-inline: 24px;
+  }
+
+  .landing-workflow {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .workflow-arrow {
+    margin-left: 13px;
+    transform: rotate(90deg);
+  }
+}
+
+@media (max-width: 767px) {
+  body {
+    overflow: auto;
+  }
+
+  .app-shell {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .topbar {
+    height: auto;
+    min-height: 58px;
+    padding: 10px 12px;
+  }
+
+  .brand-name {
+    display: none;
+  }
+
+  .top-actions {
+    gap: 6px;
+  }
+
+  .network-control {
+    max-width: 125px;
+  }
+
+  .network-control select {
+    max-width: 95px;
+  }
+
+  .account-button {
+    max-width: 118px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .workspace {
+    display: flex;
+    height: auto;
+    flex-direction: column;
+  }
+
+  .rail,
+  .center-pane,
+  .inspector {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .state-footer {
+    position: static;
+  }
+
+  .rail {
+    border-bottom: 1px solid var(--border-strong);
+  }
+
+  .pane-heading,
+  .new-button,
+  .filter-row,
+  .rail-footer {
+    display: none;
+  }
+
+  .history-list {
+    display: flex;
+    min-height: 0;
+    overflow-x: auto;
+  }
+
+  .history-row {
+    min-width: 210px;
+    border-right: 1px solid var(--border);
+    border-bottom: 0;
+  }
+
+  .empty-rail {
+    width: 100%;
+    padding: 12px 16px;
+  }
+
+  .center-pane {
+    order: 2;
+    padding-right: 0;
+  }
+
+  .inspector {
+    order: 3;
+    border-top: 1px solid var(--border-strong);
+  }
+
+  .transaction-section,
+  .execution-section,
+  .checks-section,
+  .landing-intro,
+  .verdict-panel,
+  .evidence-panel,
+  .raw-panel,
+  .receipt-panel,
+  .determinism-note {
+    padding: 16px;
+  }
+
+  .landing-intro {
+    padding-block: 34px 28px;
+  }
+
+  .landing-intro h1 {
+    font-size: 32px;
+  }
+
+  .landing-intro > p:not(.landing-disclosure) {
+    font-size: 13px;
+  }
+
+  .landing-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .landing-actions button {
+    width: 100%;
+  }
+
+  .landing-workflow {
+    padding: 22px 16px;
+  }
+
+  .landing-assurances {
+    padding-inline: 16px;
+  }
+
+  .field-grid,
+  .run-row {
+    grid-template-columns: 1fr;
+  }
+
+  .form-tools button {
+    width: 30px;
+    padding: 0;
+    justify-content: center;
+    overflow: hidden;
+    color: transparent;
+  }
+
+  .form-tools button svg {
+    min-width: 14px;
+    color: var(--ink);
+  }
+
+  .execution-path {
+    display: block;
+  }
+
+  .path-fragment {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .path-arrow {
+    margin-left: 12px;
+    transform: rotate(90deg);
+  }
+
+  .checks-header {
+    display: none;
+  }
+
+  .check-row {
+    grid-template-columns: 88px 1fr 16px;
+  }
+
+  .check-summary {
+    display: none;
+  }
+
+  .verdict-line h2 {
+    font-size: 25px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "name": "@preflight/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite --host 127.0.0.1",
+    "preview": "vite preview --host 127.0.0.1",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@celo/attribution-tags": "0.3.0",
+    "@preflight/shared": "workspace:*",
+    "@tanstack/react-query": "5.101.2",
+    "@x402/evm": "2.18.0",
+    "@x402/fetch": "2.18.0",
+    "lucide-react": "1.24.0",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "viem": "2.55.2",
+    "wagmi": "3.7.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.1",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.3",
+    "jsdom": "29.1.1",
+    "vite": "8.1.5"
+  }
+}

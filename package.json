@@ -1,0 +1,30 @@
+{
+  "name": "celo-preflight",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.33.1",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @preflight/api --filter @preflight/web dev",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "oxlint --type-aware --deny-warnings apps packages scripts",
+    "typecheck": "pnpm -r typecheck",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "pnpm --filter @preflight/web test:e2e",
+    "build": "pnpm -r build",
+    "files:check": "node scripts/check-file-size.mjs",
+    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm files:check"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "4.1.6",
+    "oxlint": "1.71.0",
+    "oxlint-tsgolint": "0.25.0",
+    "prettier": "3.8.2",
+    "typescript": "6.0.2",
+    "vitest": "4.1.6"
+  }
+}

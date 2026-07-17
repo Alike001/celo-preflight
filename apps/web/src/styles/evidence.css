@@ -1,0 +1,192 @@
+.execution-section,
+.checks-section {
+  padding-block: 16px;
+}
+
+.execution-path {
+  display: flex;
+  align-items: stretch;
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  background: var(--canvas);
+}
+
+.path-fragment {
+  display: contents;
+}
+
+.path-step {
+  display: flex;
+  flex: 1;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  padding: 10px;
+}
+
+.path-step > svg {
+  width: 17px;
+  min-width: 17px;
+  color: #343934;
+}
+
+.path-step span,
+.path-step strong,
+.path-step small {
+  display: block;
+  min-width: 0;
+}
+
+.path-step strong {
+  margin-bottom: 3px;
+  font-size: 9px;
+}
+
+.path-step small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.path-arrow {
+  align-self: center;
+  width: 13px;
+  min-width: 13px;
+  color: var(--border-strong);
+}
+
+.empty-path,
+.empty-checks {
+  margin-top: 12px;
+  padding: 18px;
+  border: 1px dashed var(--border-strong);
+  background: var(--canvas);
+}
+
+.check-count {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--muted);
+}
+
+.checks-table {
+  margin-top: 12px;
+  border: 1px solid var(--border);
+}
+
+.checks-header,
+.check-row {
+  display: grid;
+  grid-template-columns: 92px minmax(130px, 0.8fr) minmax(180px, 1.3fr) 18px;
+  gap: 10px;
+  align-items: center;
+}
+
+.checks-header {
+  min-height: 26px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--canvas);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 7px;
+  text-transform: uppercase;
+}
+
+.check-row {
+  width: 100%;
+  min-height: 49px;
+  padding: 7px 10px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--white);
+  text-align: left;
+}
+
+.check-row:last-child {
+  border-bottom: 0;
+}
+
+.check-row:hover,
+.check-selected {
+  background: var(--canvas);
+}
+
+.check-selected {
+  box-shadow: inset 3px 0 var(--yellow);
+}
+
+.check-row > span strong,
+.check-row > span small {
+  display: block;
+}
+
+.check-row > span strong {
+  margin-bottom: 3px;
+  font-size: 9px;
+}
+
+.check-row > span small {
+  color: var(--muted);
+  font-size: 7px;
+}
+
+.check-result {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.check-summary {
+  color: #4f554f;
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.check-row > svg {
+  width: 13px;
+  color: var(--muted);
+}
+
+.status-icon {
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+  padding: 2px;
+  border-radius: 50%;
+}
+
+.status-pass,
+.status-clear {
+  color: var(--green);
+  background: var(--green-soft);
+}
+
+.status-warn,
+.status-caution {
+  color: var(--amber);
+  background: var(--amber-soft);
+}
+
+.status-fail,
+.status-block {
+  color: var(--red);
+  background: var(--red-soft);
+}
+
+.status-not-applicable {
+  color: var(--muted);
+  background: #eceeeb;
+}
+
+.state-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  background: rgb(255 255 255 / 96%);
+}

@@ -1,0 +1,275 @@
+.icon-button,
+.form-tools button,
+.verdict-actions button,
+.new-button,
+.filter-row button {
+  border-radius: 3px;
+}
+
+.icon-button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid var(--border);
+  background: var(--white);
+}
+
+.icon-button svg {
+  width: 15px;
+}
+
+.new-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  margin: 0 14px 13px;
+  padding: 0 10px;
+  border: 1px solid var(--ink);
+  background: var(--yellow);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.new-button kbd {
+  margin-left: auto;
+  padding: 2px 5px;
+  border: 1px solid #a78d00;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 45%);
+  font-size: 9px;
+}
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 9px 14px;
+  border-block: 1px solid var(--border);
+}
+
+.filter-row > svg {
+  margin-right: 3px;
+  color: var(--muted);
+}
+
+.filter-row button {
+  padding: 4px 5px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.filter-row .filter-active {
+  background: var(--ink);
+  color: var(--white);
+}
+
+.history-list {
+  flex: 1;
+  min-height: 180px;
+}
+
+.history-row {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  gap: 8px;
+  width: 100%;
+  min-height: 58px;
+  padding: 10px 13px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  text-align: left;
+}
+
+.history-row:hover,
+.history-selected {
+  background: var(--white);
+}
+
+.history-selected {
+  box-shadow: inset 3px 0 var(--yellow);
+}
+
+.history-copy {
+  min-width: 0;
+}
+
+.history-copy strong,
+.history-copy small {
+  display: block;
+}
+
+.history-copy strong {
+  margin-bottom: 5px;
+  font-family: var(--mono);
+  font-size: 10px;
+}
+
+.history-copy small {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.verdict-mini {
+  align-self: start;
+  font-family: var(--mono);
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.verdict-clear {
+  color: var(--green);
+}
+
+.verdict-caution {
+  color: var(--amber);
+}
+
+.verdict-block {
+  color: var(--red);
+}
+
+.empty-rail,
+.empty-path,
+.empty-checks,
+.empty-inspector {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.empty-rail {
+  padding: 28px 18px;
+}
+
+.empty-rail span,
+.empty-rail small {
+  display: block;
+}
+
+.empty-rail span {
+  margin-bottom: 5px;
+  color: var(--ink);
+  font-weight: 650;
+}
+
+.rail-footer,
+.state-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.transaction-section,
+.execution-section,
+.checks-section {
+  padding: 19px 22px;
+  border-bottom: 1px solid var(--border-strong);
+}
+
+.section-intro {
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.form-tools {
+  display: flex;
+  gap: 6px;
+}
+
+.form-tools button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  font-size: 9px;
+}
+
+.transaction-form {
+  margin-top: 16px;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.transaction-form label > span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 5px;
+  color: #454a45;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.transaction-form input,
+.transaction-form textarea {
+  width: 100%;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  background: var(--canvas);
+  font-family: var(--mono);
+  font-size: 10px;
+}
+
+.transaction-form input {
+  height: 34px;
+  padding: 0 9px;
+}
+
+.transaction-form textarea {
+  min-height: 82px;
+  padding: 9px;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.transaction-form input:focus,
+.transaction-form textarea:focus {
+  border-color: var(--ink);
+  background: var(--white);
+  outline: 2px solid var(--yellow);
+  outline-offset: 0;
+}
+
+.calldata-field {
+  display: block;
+  margin-top: 12px;
+}
+
+.form-message {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-left: 3px solid var(--border-strong);
+  background: var(--canvas);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.message-error {
+  border-color: var(--red);
+  background: var(--red-soft);
+  color: #8e1015;
+}
+
+.message-complete {
+  border-color: var(--green);
+  background: var(--green-soft);
+}

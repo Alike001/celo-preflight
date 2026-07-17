@@ -1,0 +1,166 @@
+.landing-state {
+  min-height: 100%;
+  background: var(--white);
+}
+
+.landing-intro {
+  padding: clamp(38px, 7vh, 74px) 38px 34px;
+  border-bottom: 1px solid var(--border-strong);
+}
+
+.landing-intro h1 {
+  max-width: 590px;
+  font-size: clamp(31px, 3vw, 47px);
+  font-weight: 760;
+  line-height: 1.04;
+  letter-spacing: -0.052em;
+}
+
+.landing-intro > p:not(.landing-disclosure) {
+  max-width: 540px;
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.landing-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 27px;
+}
+
+.landing-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 780;
+}
+
+.landing-actions svg {
+  width: 15px;
+}
+
+.landing-primary {
+  min-width: 178px;
+  border: 1px solid var(--ink);
+  background: var(--yellow);
+}
+
+.landing-secondary {
+  border: 1px solid var(--border-strong);
+  background: var(--white);
+}
+
+.landing-secondary:hover {
+  background: var(--canvas);
+}
+
+.landing-disclosure {
+  max-width: 540px;
+  margin-top: 14px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 8px;
+  line-height: 1.55;
+}
+
+.landing-workflow {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: 24px 38px;
+  border-bottom: 1px solid var(--border-strong);
+  background: var(--canvas);
+}
+
+.workflow-fragment {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.workflow-step {
+  display: flex;
+  min-width: 0;
+  gap: 10px;
+  align-items: center;
+}
+
+.workflow-number {
+  display: grid;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  background: var(--white);
+  font-family: var(--mono);
+  font-size: 8px;
+}
+
+.workflow-step strong,
+.workflow-step small,
+.assurance-row strong,
+.assurance-row small {
+  display: block;
+}
+
+.workflow-step strong {
+  margin-bottom: 4px;
+  font-size: 10px;
+}
+
+.workflow-step small {
+  overflow: hidden;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workflow-arrow {
+  width: 14px;
+  margin-inline: auto;
+  color: var(--muted);
+}
+
+.landing-assurances {
+  padding: 0 38px;
+}
+
+.assurance-row {
+  display: grid;
+  grid-template-columns: 24px 1fr 18px;
+  gap: 12px;
+  align-items: center;
+  min-height: 72px;
+  border-bottom: 1px solid var(--border);
+}
+
+.assurance-row > svg:first-child {
+  width: 18px;
+  color: var(--green);
+}
+
+.assurance-row strong {
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+
+.assurance-row small {
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.assurance-proof {
+  width: 14px;
+  color: var(--muted);
+}
