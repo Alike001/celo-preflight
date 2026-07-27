@@ -6,7 +6,7 @@ const config = loadConfig()
 const { app, payment } = await createApp(config)
 const server = createServer(app)
 
-server.listen(config.port, '127.0.0.1', () => {
+server.listen(config.port, '0.0.0.0', () => {
   console.log(`Celo Preflight API listening on http://127.0.0.1:${config.port}`)
   console.log(
     payment.enabled

@@ -45,6 +45,10 @@ Hosted paid claims remain disabled unless all three x402 variables in [`apps/api
 
 The public Celo facilitator was not DNS-reachable from this environment on July 17, 2026, so the shipped default is factual local-free mode rather than a simulated payment flow.
 
+## Railway deployment
+
+This repository deploys as one Railway service: its Express process serves both `apps/web/dist` and `/api/*` from one origin. Railway must mount one persistent volume at `/data` and set `DATA_DIR=/data`, `REPORT_SIGNER_PRIVATE_KEY` to a dedicated production key, and `REQUIRED_ATTRIBUTION_TAG` to the organizer-assigned tag. The checked-in health path is `/api/health`; Railway supplies `PORT` automatically.
+
 ## Report integrity
 
 Every report includes its normalized request hash, chain and snapshot state, ruleset version, individual checks, issuer, expiry, and ECDSA signature. In local development an unfunded report-signing key is generated under `.data/`; production should inject a dedicated `REPORT_SIGNER_PRIVATE_KEY` and use a persistent `DATA_DIR`.

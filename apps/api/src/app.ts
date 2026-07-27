@@ -1,4 +1,7 @@
 import express, { type ErrorRequestHandler } from 'express'
+import { existsSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, resolve } from 'node:path'
 import { isAddress } from 'viem'
 import type { Address, PrepareResponse, PreparedReport } from '@preflight/shared'
 import { parseTransactionDraft, ValidationError } from '@preflight/shared'
@@ -41,6 +44,13 @@ function summary(report: PreparedReport) {
   }
 }
 
+function webDistDirectory(): string | undefined {
+  const configured = process.env.WEB_DIST_DIR
+  const bundled = resolve(dirname(fileURLToPath(import.meta.url)), '../../web/dist')
+  const directory = configured ?? bundled
+  return existsSync(resolve(directory, 'index.html')) ? directory : undefined
+}
+
 export async function createApp(
   config: ApiConfig,
   overrides: AppOverrides = {},
@@ -54,9 +64,11 @@ export async function createApp(
   const payment = overrides.payment ?? (await createPaymentCapability(config.payment, reports))
   const mode: PrepareResponse['mode'] = payment.enabled ? 'hosted-paid' : 'local-free'
   const app = express()
+  const webDist = webDistDirectory()
 
   app.disable('x-powered-by')
   app.use(express.json({ limit: '64kb' }))
+  if (webDist) app.use(express.static(webDist))
   app.use((_request, response, next) => {
     response.setHeader('X-Content-Type-Options', 'nosniff')
     response.setHeader('Referrer-Policy', 'no-referrer')
@@ -198,7 +210,15 @@ export async function createApp(
     })
   }
 
-  app.use((_request, response) => {
+  app.get('{*path}', (request, response) => {
+    if (request.path === '/api' || request.path.startsWith('/api/')) {
+      response.status(404).json({ error: 'Not found.' })
+      return
+    }
+    if (webDist) {
+      response.sendFile(resolve(webDist, 'index.html'))
+      return
+    }
     response.status(404).json({ error: 'Not found.' })
   })
 
