@@ -1,5 +1,6 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express'
 import { HTTPFacilitatorClient, x402ResourceServer } from '@x402/core/server'
+import { decodePaymentRequiredHeader } from '@x402/core/http'
 import { ExactEvmScheme } from '@x402/evm/exact/server'
 import { paymentMiddleware } from '@x402/express'
 import type { Address, Hex, PaymentReceipt, PreparedReport } from '@preflight/shared'
@@ -36,6 +37,34 @@ export function usdcExactPrice(price: string) {
     // Celo's x402 facilitator verifies this EIP-712 domain exactly. Circle's
     // Celo contract uses "USDC" (not its display name "USD Coin").
     extra: { name: 'USDC', version: '2' },
+  }
+}
+
+export function paymentRejectionReason(header: string | undefined): string | undefined {
+  if (!header) return undefined
+  try {
+    const decoded = decodePaymentRequiredHeader(header)
+    return typeof decoded.error === 'string' ? decoded.error : undefined
+  } catch {
+    return undefined
+  }
+}
+
+function withPaymentDiagnostics(middleware: RequestHandler): RequestHandler {
+  return (request: Request, response: Response, next: NextFunction) => {
+    const hadPaymentSignature = Boolean(
+      request.header('payment-signature') ?? request.header('x-payment'),
+    )
+    response.once('finish', () => {
+      if (!hadPaymentSignature || response.statusCode !== 402) return
+      const header = response.getHeader('payment-required')
+      const value = Array.isArray(header) ? header[0] : header
+      const reason = typeof value === 'string' ? paymentRejectionReason(value) : undefined
+      console.warn('x402 payment authorization rejected.', {
+        reason: reason ?? 'The facilitator returned no structured reason.',
+      })
+    })
+    middleware(request, response, next)
   }
 }
 
@@ -105,7 +134,7 @@ export async function createPaymentCapability(
     network: NETWORK,
     price: config.price,
     payTo: config.payTo,
-    middleware: paymentMiddleware(
+    middleware: withPaymentDiagnostics(paymentMiddleware(
       {
         'POST /api/preflight/claim': {
           accepts: [
@@ -121,7 +150,7 @@ export async function createPaymentCapability(
         },
       },
       resourceServer,
-    ),
+    )),
   }
 }
 
