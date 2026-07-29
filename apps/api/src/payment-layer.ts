@@ -121,6 +121,36 @@ export async function createPaymentCapability(
   }
 
   const resourceServer = new x402ResourceServer(facilitator).register(NETWORK, new ExactEvmScheme())
+  resourceServer.onBeforeVerify(async ({ paymentPayload, requirements }) => {
+    try {
+      const response = await fetch(`${config.facilitatorUrl.replace(/\/+$/, '')}/verify`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          x402Version: paymentPayload.x402Version,
+          paymentPayload,
+          paymentRequirements: requirements,
+        }),
+      })
+      const body = (await response.json().catch(() => ({}))) as {
+        isValid?: unknown
+        invalidReason?: unknown
+        invalidReasonDetails?: unknown
+      }
+      if (body.isValid !== true) {
+        console.warn('x402 facilitator raw verification failed.', {
+          status: response.status,
+          invalidReason: typeof body.invalidReason === 'string' ? body.invalidReason : 'none',
+          invalidReasonDetails:
+            typeof body.invalidReasonDetails === 'string' ? body.invalidReasonDetails : 'none',
+        })
+      }
+    } catch (error) {
+      console.warn('x402 facilitator raw verification request failed.', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+      })
+    }
+  })
   resourceServer.onAfterVerify(async ({ result, paymentPayload, requirements }) => {
     if (result.isValid) return
     console.warn('x402 verification failed.', {
