@@ -27,13 +27,15 @@ function timeout<T>(promise: Promise<T>, milliseconds: number): Promise<T> {
   ])
 }
 
-function usdPrice(price: string) {
+export function usdcExactPrice(price: string) {
   const [, whole = '0', fraction = ''] = /^\$(\d+)(?:\.(\d+))?$/.exec(price) ?? []
   const amount = BigInt(whole) * 1_000_000n + BigInt(fraction.padEnd(6, '0').slice(0, 6))
   return {
     amount: amount.toString(),
     asset: CELO_USDC,
-    extra: { name: 'USD Coin', version: '2' },
+    // Celo's x402 facilitator verifies this EIP-712 domain exactly. Circle's
+    // Celo contract uses "USDC" (not its display name "USD Coin").
+    extra: { name: 'USDC', version: '2' },
   }
 }
 
@@ -109,7 +111,7 @@ export async function createPaymentCapability(
           accepts: [
             {
               scheme: 'exact',
-              price: usdPrice(config.price),
+              price: usdcExactPrice(config.price),
               network: NETWORK,
               payTo: config.payTo,
             },
