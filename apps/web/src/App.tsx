@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, startTransition } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useAccount, usePublicClient, useSwitchChain, useWalletClient } from 'wagmi'
+import { useAccount, usePublicClient, useSwitchChain } from 'wagmi'
+import { getWalletClient } from 'wagmi/actions'
 import type { PublicClient, WalletClient } from 'viem'
 import type { PreparedReport, SupportedChainId, TransactionDraft, Verdict } from '@preflight/shared'
 import {
@@ -11,6 +12,7 @@ import {
   prepareReport,
 } from './api.js'
 import { createSampleTransaction } from './sample.js'
+import { wagmiConfig } from './wagmi.js'
 import { ChecksTable } from './components/ChecksTable.js'
 import { DocsDialog } from './components/DocsDialog.js'
 import { EvidenceInspector } from './components/EvidenceInspector.js'
@@ -50,7 +52,6 @@ export function App() {
   const fromRef = useRef<HTMLInputElement>(null)
   const shouldFocusForm = useRef(false)
   const account = useAccount()
-  const wallet = useWalletClient({ chainId: 42220 })
   const publicClient = usePublicClient({ chainId: 42220 })
   const { switchChainAsync } = useSwitchChain()
 
@@ -94,7 +95,7 @@ export function App() {
       const prepared = await prepareReport(draft)
       let nextReport = prepared.report
       if (prepared.claimRequired) {
-        if (!account.isConnected || !wallet.data || !publicClient) {
+        if (!account.isConnected || !account.address || !publicClient) {
           setStatus('awaiting-wallet')
           setStatusMessage(
             `Report prepared as ${prepared.prepared.verdict}. Connect a wallet to claim it via ${capabilities.data?.payment.price ?? 'x402'}.`,
@@ -102,6 +103,10 @@ export function App() {
           return
         }
         if (account.chainId !== 42220) await switchChainAsync({ chainId: 42220 })
+        const walletClient = await getWalletClient(wagmiConfig, {
+          account: account.address,
+          chainId: 42220,
+        })
         setStatus('signing-payment')
         setStatusMessage(
           'Authorize the exact x402 payment in your wallet. No transaction is sent by Preflight.',
@@ -109,7 +114,7 @@ export function App() {
         const { claimReportWithX402 } = await import('./payments.js')
         nextReport = await claimReportWithX402(
           prepared.prepared.id,
-          wallet.data as unknown as WalletClient,
+          walletClient as unknown as WalletClient,
           publicClient as unknown as PublicClient,
         )
       }
