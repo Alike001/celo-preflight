@@ -79,6 +79,19 @@ function reportIdFromTransport(transportContext: unknown): string | undefined {
   }
 }
 
+function authorizationSummary(payload: unknown) {
+  if (!payload || typeof payload !== 'object') return undefined
+  const authorization = (payload as { authorization?: unknown }).authorization
+  if (!authorization || typeof authorization !== 'object') return undefined
+  const value = authorization as Record<string, unknown>
+  return {
+    from: typeof value.from === 'string' ? value.from : undefined,
+    to: typeof value.to === 'string' ? value.to : undefined,
+    value: typeof value.value === 'string' ? value.value : undefined,
+    validBefore: typeof value.validBefore === 'string' ? value.validBefore : undefined,
+  }
+}
+
 export async function createPaymentCapability(
   config: ApiConfig['payment'],
   reports: ReportRepository,
@@ -108,6 +121,20 @@ export async function createPaymentCapability(
   }
 
   const resourceServer = new x402ResourceServer(facilitator).register(NETWORK, new ExactEvmScheme())
+  resourceServer.onAfterVerify(async ({ result, paymentPayload, requirements }) => {
+    if (result.isValid) return
+    console.warn('x402 verification failed.', {
+      invalidReason: result.invalidReason ?? 'none',
+      invalidMessage: result.invalidMessage ?? 'none',
+      expected: {
+        network: requirements.network,
+        asset: requirements.asset,
+        payTo: requirements.payTo,
+        amount: requirements.amount,
+      },
+      authorization: authorizationSummary(paymentPayload.payload),
+    })
+  })
   resourceServer.onAfterSettle(async ({ result, requirements, transportContext }) => {
     try {
       const reportId = reportIdFromTransport(transportContext)
