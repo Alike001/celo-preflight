@@ -1,6 +1,6 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express'
 import { HTTPFacilitatorClient, x402ResourceServer } from '@x402/core/server'
-import { decodePaymentRequiredHeader } from '@x402/core/http'
+import { decodePaymentRequiredHeader, decodePaymentSignatureHeader } from '@x402/core/http'
 import { ExactEvmScheme } from '@x402/evm/exact/server'
 import { paymentMiddleware } from '@x402/express'
 import type { Address, Hex, PaymentReceipt, PreparedReport } from '@preflight/shared'
@@ -50,13 +50,61 @@ export function paymentRejectionReason(header: string | undefined): string | und
   }
 }
 
-function withPaymentDiagnostics(middleware: RequestHandler): RequestHandler {
-  return (request: Request, response: Response, next: NextFunction) => {
-    const hadPaymentSignature = Boolean(
-      request.header('payment-signature') ?? request.header('x-payment'),
-    )
+type HostedPaymentConfig = NonNullable<ApiConfig['payment']>
+
+function paymentRequirements(config: HostedPaymentConfig) {
+  return {
+    scheme: 'exact',
+    network: NETWORK,
+    ...usdcExactPrice(config.price),
+    payTo: config.payTo,
+    maxTimeoutSeconds: 300,
+  }
+}
+
+async function traceFacilitatorVerification(
+  paymentSignature: string,
+  config: HostedPaymentConfig,
+) {
+  try {
+    const paymentPayload = decodePaymentSignatureHeader(paymentSignature)
+    const response = await fetch(`${config.facilitatorUrl.replace(/\/+$/, '')}/verify`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        x402Version: paymentPayload.x402Version,
+        paymentPayload,
+        paymentRequirements: paymentRequirements(config),
+      }),
+    })
+    const body = (await response.json().catch(() => ({}))) as {
+      isValid?: unknown
+      invalidReason?: unknown
+      invalidReasonDetails?: unknown
+    }
+    console.warn('x402 facilitator raw verification result.', {
+      status: response.status,
+      isValid: body.isValid === true,
+      invalidReason: typeof body.invalidReason === 'string' ? body.invalidReason : 'none',
+      invalidReasonDetails:
+        typeof body.invalidReasonDetails === 'string' ? body.invalidReasonDetails : 'none',
+    })
+  } catch (error) {
+    console.warn('x402 facilitator raw verification request failed.', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+    })
+  }
+}
+
+function withPaymentDiagnostics(
+  middleware: RequestHandler,
+  config: HostedPaymentConfig,
+): RequestHandler {
+  return async (request: Request, response: Response, next: NextFunction) => {
+    const paymentSignature = request.header('payment-signature') ?? request.header('x-payment')
+    if (paymentSignature) await traceFacilitatorVerification(paymentSignature, config)
     response.once('finish', () => {
-      if (!hadPaymentSignature || response.statusCode !== 402) return
+      if (!paymentSignature || response.statusCode !== 402) return
       const header = response.getHeader('payment-required')
       const value = Array.isArray(header) ? header[0] : header
       const reason = typeof value === 'string' ? paymentRejectionReason(value) : undefined
@@ -76,19 +124,6 @@ function reportIdFromTransport(transportContext: unknown): string | undefined {
     return (JSON.parse(body.toString('utf8')) as { report?: PreparedReport }).report?.id
   } catch {
     return undefined
-  }
-}
-
-function authorizationSummary(payload: unknown) {
-  if (!payload || typeof payload !== 'object') return undefined
-  const authorization = (payload as { authorization?: unknown }).authorization
-  if (!authorization || typeof authorization !== 'object') return undefined
-  const value = authorization as Record<string, unknown>
-  return {
-    from: typeof value.from === 'string' ? value.from : undefined,
-    to: typeof value.to === 'string' ? value.to : undefined,
-    value: typeof value.value === 'string' ? value.value : undefined,
-    validBefore: typeof value.validBefore === 'string' ? value.validBefore : undefined,
   }
 }
 
@@ -121,50 +156,6 @@ export async function createPaymentCapability(
   }
 
   const resourceServer = new x402ResourceServer(facilitator).register(NETWORK, new ExactEvmScheme())
-  resourceServer.onBeforeVerify(async ({ paymentPayload, requirements }) => {
-    try {
-      const response = await fetch(`${config.facilitatorUrl.replace(/\/+$/, '')}/verify`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          x402Version: paymentPayload.x402Version,
-          paymentPayload,
-          paymentRequirements: requirements,
-        }),
-      })
-      const body = (await response.json().catch(() => ({}))) as {
-        isValid?: unknown
-        invalidReason?: unknown
-        invalidReasonDetails?: unknown
-      }
-      if (body.isValid !== true) {
-        console.warn('x402 facilitator raw verification failed.', {
-          status: response.status,
-          invalidReason: typeof body.invalidReason === 'string' ? body.invalidReason : 'none',
-          invalidReasonDetails:
-            typeof body.invalidReasonDetails === 'string' ? body.invalidReasonDetails : 'none',
-        })
-      }
-    } catch (error) {
-      console.warn('x402 facilitator raw verification request failed.', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-      })
-    }
-  })
-  resourceServer.onAfterVerify(async ({ result, paymentPayload, requirements }) => {
-    if (result.isValid) return
-    console.warn('x402 verification failed.', {
-      invalidReason: result.invalidReason ?? 'none',
-      invalidMessage: result.invalidMessage ?? 'none',
-      expected: {
-        network: requirements.network,
-        asset: requirements.asset,
-        payTo: requirements.payTo,
-        amount: requirements.amount,
-      },
-      authorization: authorizationSummary(paymentPayload.payload),
-    })
-  })
   resourceServer.onAfterSettle(async ({ result, requirements, transportContext }) => {
     try {
       const reportId = reportIdFromTransport(transportContext)
@@ -207,7 +198,7 @@ export async function createPaymentCapability(
         },
       },
       resourceServer,
-    )),
+    ), config),
   }
 }
 
