@@ -4,6 +4,21 @@ import { toClientEvmSigner } from '@x402/evm'
 import { ExactEvmScheme } from '@x402/evm/exact/client'
 import { wrapFetchWithPayment, x402Client } from '@x402/fetch'
 
+export function paymentError(response: Response, body?: { error?: string }) {
+  if (body?.error) return body.error
+  const required = response.headers.get('payment-required')
+  if (required) {
+    try {
+      const normalized = required.replace(/-/g, '+').replace(/_/g, '/')
+      const decoded = JSON.parse(atob(normalized)) as { error?: unknown }
+      if (typeof decoded.error === 'string' && decoded.error) return decoded.error
+    } catch {
+      // Keep the HTTP status as the factual fallback when a malformed header is returned.
+    }
+  }
+  return `Payment failed (${response.status})`
+}
+
 export async function claimReportWithX402(
   reportId: string,
   walletClient: WalletClient,
@@ -35,7 +50,7 @@ export async function claimReportWithX402(
   })
   const body = (await response.json()) as { report?: PreparedReport; error?: string }
   if (!response.ok || !body.report) {
-    throw new Error(body.error ?? `Payment failed (${response.status})`)
+    throw new Error(paymentError(response, body))
   }
   return body.report
 }

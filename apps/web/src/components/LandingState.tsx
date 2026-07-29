@@ -1,7 +1,7 @@
 import { ArrowRight, EyeOff, FileCheck2, Play, Radio, ShieldCheck } from 'lucide-react'
 
 interface LandingStateProps {
-  onRunSample: () => void
+  onLoadSample: () => void
   onInspect: () => void
 }
 
@@ -29,7 +29,7 @@ const assurances = [
   },
 ] as const
 
-export function LandingState({ onRunSample, onInspect }: LandingStateProps) {
+export function LandingState({ onLoadSample, onInspect }: LandingStateProps) {
   return (
     <section className="landing-state" aria-labelledby="landing-heading">
       <div className="landing-intro">
@@ -39,16 +39,16 @@ export function LandingState({ onRunSample, onInspect }: LandingStateProps) {
           deterministic verdict.
         </p>
         <div className="landing-actions">
-          <button className="landing-primary" type="button" onClick={onRunSample}>
-            <Play aria-hidden /> Run live sample
+          <button className="landing-primary" type="button" onClick={onLoadSample}>
+            <Play aria-hidden /> Load live sample
           </button>
           <button className="landing-secondary" type="button" onClick={onInspect}>
             Inspect your transaction <ArrowRight aria-hidden />
           </button>
         </div>
         <p className="landing-disclosure">
-          The sample supplies unsigned input only. Its block, evidence, verdict, and signature are
-          computed when you run it.
+          The sample supplies unsigned input only. Review it first; it does not connect a wallet or
+          request payment until you explicitly run preflight.
         </p>
       </div>
 

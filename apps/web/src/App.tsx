@@ -189,10 +189,12 @@ export function App() {
         <div className="center-pane">
           {showLanding ? (
             <LandingState
-              onRunSample={() => {
+              onLoadSample={() => {
                 const sample = createSampleTransaction(capabilities.data?.attribution.requiredCode)
                 setTransaction(sample)
-                void runPreflight(sample)
+                setShowLanding(false)
+                setStatus('idle')
+                setStatusMessage('Sample input loaded. Review it, then explicitly run preflight.')
               }}
               onInspect={newInspection}
             />

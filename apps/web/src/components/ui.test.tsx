@@ -43,15 +43,15 @@ const report: PreparedReport = {
 
 describe('Flight Deck controls', () => {
   it('makes the real sample and manual inspection paths explicit', () => {
-    const onRunSample = vi.fn()
+    const onLoadSample = vi.fn()
     const onInspect = vi.fn()
-    render(<LandingState onRunSample={onRunSample} onInspect={onInspect} />)
+    render(<LandingState onLoadSample={onLoadSample} onInspect={onInspect} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Run live sample' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Load live sample' }))
     fireEvent.click(screen.getByRole('button', { name: 'Inspect your transaction' }))
-    expect(onRunSample).toHaveBeenCalledOnce()
+    expect(onLoadSample).toHaveBeenCalledOnce()
     expect(onInspect).toHaveBeenCalledOnce()
-    expect(screen.getByText(/sample supplies unsigned input only/i)).toBeTruthy()
+    expect(screen.getByText(/does not connect a wallet or request payment/i)).toBeTruthy()
   })
 
   it('does not imply evidence exists before an inspection runs', () => {
