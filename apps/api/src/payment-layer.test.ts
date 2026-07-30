@@ -11,7 +11,9 @@ describe('Celo USDC x402 requirements', () => {
   })
 
   it('extracts the facilitator rejection reason without retaining a payment signature', () => {
-    const header = Buffer.from(JSON.stringify({ error: 'Authorization expired.' })).toString('base64')
+    const header = Buffer.from(JSON.stringify({ error: 'Authorization expired.' })).toString(
+      'base64',
+    )
 
     expect(paymentRejectionReason(header)).toBe('Authorization expired.')
     expect(paymentRejectionReason('not-a-payment-header')).toBeUndefined()

@@ -30,7 +30,7 @@ export interface Capabilities {
 
 export interface MentoProposal {
   transaction: TransactionDraft
-  approvalRequired: boolean
+  approval?: TransactionDraft
   quote: {
     amountIn: string
     expectedAmountOut: string

@@ -22,7 +22,8 @@ const KESm = '0x456a3D042C0DbD3db53D5489e98dFb038553B0d0' as Address
 
 export interface MentoProposal {
   transaction: TransactionDraft
-  approvalRequired: boolean
+  /** Inspect and execute this bounded approval before the accompanying swap. */
+  approval?: TransactionDraft
   quote: {
     amountIn: string
     expectedAmountOut: string
@@ -196,18 +197,27 @@ export class ChainInspector {
         { slippageTolerance: 0.5, deadline: deadlineFromMinutes(5) },
         route,
       )
-      const data = requiredAttributionCode
-        ? concat([swap.params.data as `0x${string}`, toDataSuffix(requiredAttributionCode)])
-        : (swap.params.data as `0x${string}`)
+      const withAttribution = (data: `0x${string}`) =>
+        requiredAttributionCode ? concat([data, toDataSuffix(requiredAttributionCode)]) : data
       return {
         transaction: {
           chainId: 42220,
           from: owner,
           to: swap.params.to as Address,
           valueWei: BigInt(swap.params.value).toString(),
-          data,
+          data: withAttribution(swap.params.data as `0x${string}`),
         },
-        approvalRequired: approval !== null,
+        ...(approval
+          ? {
+              approval: {
+                chainId: 42220,
+                from: owner,
+                to: approval.to as Address,
+                valueWei: BigInt(approval.value).toString(),
+                data: withAttribution(approval.data as `0x${string}`),
+              },
+            }
+          : {}),
         quote: {
           amountIn: swap.amountIn.toString(),
           expectedAmountOut: swap.expectedAmountOut.toString(),

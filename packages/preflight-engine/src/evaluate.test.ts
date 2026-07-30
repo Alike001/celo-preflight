@@ -81,6 +81,47 @@ describe('deterministic evaluation', () => {
     expect(result.checks[0]?.summary).toContain(summary)
   })
 
+  it('does not clear an ERC-20 selector collision on an unknown target', () => {
+    const facts = baseFacts({
+      simulation: {
+        status: 'success',
+        returnData: `0x${'0'.repeat(63)}1`,
+      },
+      decoded: {
+        kind: 'erc20-transfer',
+        token: address('2'),
+        recipient: address('3'),
+        amount: '1',
+      },
+    })
+    expect(check(facts, 'TOKEN_IDENTITY')).toMatchObject({ status: 'WARN' })
+    expect(evaluateInspection(facts, { requiredAttributionCode: assignedCode }).verdict).toBe(
+      'CAUTION',
+    )
+  })
+
+  it.each([
+    [`0x${'0'.repeat(63)}1`, 'PASS', 'CLEAR'],
+    [`0x${'0'.repeat(64)}`, 'FAIL', 'BLOCK'],
+    ['0x', 'WARN', 'CAUTION'],
+    ['0x1234', 'WARN', 'CAUTION'],
+  ] as const)('evaluates an ERC-20 simulation return of %s', (returnData, status, verdict) => {
+    const facts = baseFacts({
+      transaction: { ...baseFacts().transaction, to: '0x765DE816845861e75A25fCA122bb6898B8B1282a' },
+      simulation: { status: 'success', returnData },
+      decoded: {
+        kind: 'erc20-transfer',
+        token: '0x765DE816845861e75A25fCA122bb6898B8B1282a',
+        recipient: address('3'),
+        amount: '1',
+      },
+    })
+    expect(check(facts, 'ERC20_RETURN').status).toBe(status)
+    expect(evaluateInspection(facts, { requiredAttributionCode: assignedCode }).verdict).toBe(
+      verdict,
+    )
+  })
+
   it('uses safe fallback details when the RPC gives no failure message', () => {
     expect(check(baseFacts({ simulation: { status: 'revert' } }), 'SIMULATION').details.error).toBe(
       'No revert reason returned',
@@ -113,9 +154,11 @@ describe('deterministic evaluation', () => {
     ['0', 'PASS', 'CLEAR'],
   ] as const)('classifies ERC-20 approval amount %s', (amount, status, verdict) => {
     const facts = baseFacts({
+      transaction: { ...baseFacts().transaction, to: '0x765DE816845861e75A25fCA122bb6898B8B1282a' },
+      simulation: { status: 'success', returnData: `0x${'0'.repeat(63)}1` },
       decoded: {
         kind: 'erc20-approve',
-        token: address('2'),
+        token: '0x765DE816845861e75A25fCA122bb6898B8B1282a',
         spender: address('3'),
         amount,
       },

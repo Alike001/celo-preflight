@@ -32,6 +32,7 @@ export interface TransactionFormProps {
   connectedAddress?: `0x${string}` | undefined
   onUseConnectedAddress?: (address: `0x${string}`) => void
   onBuildMento?: () => void
+  onLoadMentoSwap?: (() => void) | undefined
 }
 
 function update<K extends keyof TransactionDraft>(
@@ -58,6 +59,7 @@ export const TransactionForm = forwardRef<HTMLInputElement, TransactionFormProps
       connectedAddress,
       onUseConnectedAddress,
       onBuildMento,
+      onLoadMentoSwap,
     },
     fromRef,
   ) {
@@ -84,6 +86,11 @@ export const TransactionForm = forwardRef<HTMLInputElement, TransactionFormProps
             {connectedAddress && onBuildMento && (
               <button type="button" onClick={onBuildMento}>
                 <Landmark aria-hidden size={14} /> Live Mento route
+              </button>
+            )}
+            {onLoadMentoSwap && (
+              <button type="button" onClick={onLoadMentoSwap}>
+                <Landmark aria-hidden size={14} /> Load Mento swap
               </button>
             )}
             <button type="button" onClick={onSample} title="Load labeled sample input">

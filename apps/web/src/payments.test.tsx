@@ -10,7 +10,9 @@ describe('x402 payment error reporting', () => {
   })
 
   it('keeps an API error message when one is provided', () => {
-    const response = new Response(JSON.stringify({ error: 'Prepared report expired.' }), { status: 410 })
+    const response = new Response(JSON.stringify({ error: 'Prepared report expired.' }), {
+      status: 410,
+    })
 
     expect(paymentError(response, { error: 'Prepared report expired.' })).toBe(
       'Prepared report expired.',

@@ -1,5 +1,4 @@
 import type { CheckEvidence, CheckStatus, InspectionFacts } from '@preflight/shared'
-import { MAX_UINT256 } from './constants.js'
 
 function evidence(
   id: string,
@@ -60,51 +59,6 @@ export function decodeRule(facts: InspectionFacts): CheckEvidence {
     'The transaction uses a supported call shape.',
     {
       callKind: facts.decoded.kind,
-    },
-  )
-}
-
-export function approvalRule(facts: InspectionFacts): CheckEvidence {
-  if (facts.decoded.kind !== 'erc20-approve') {
-    return evidence(
-      'APPROVAL_SCOPE',
-      'Token approval scope',
-      'NOT_APPLICABLE',
-      'No ERC-20 approval was decoded.',
-    )
-  }
-  const amount = facts.decoded.amount
-  if (amount === MAX_UINT256) {
-    return evidence(
-      'APPROVAL_SCOPE',
-      'Token approval scope',
-      'FAIL',
-      'The approval grants an unlimited allowance.',
-      {
-        spender: facts.decoded.spender,
-        amount,
-      },
-    )
-  }
-  if (amount === '0') {
-    return evidence(
-      'APPROVAL_SCOPE',
-      'Token approval scope',
-      'PASS',
-      'This transaction revokes the allowance.',
-      {
-        spender: facts.decoded.spender,
-      },
-    )
-  }
-  return evidence(
-    'APPROVAL_SCOPE',
-    'Token approval scope',
-    'WARN',
-    'The allowance is finite, but no intended spend is encoded in this standalone approval.',
-    {
-      spender: facts.decoded.spender,
-      amount,
     },
   )
 }

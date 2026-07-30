@@ -92,7 +92,8 @@ test('runs the primary evidence-first inspection path', async ({ page }, testInf
     page.getByRole('heading', { name: 'Know what a Celo transaction will do before you sign.' }),
   ).toBeVisible()
   await expect(page.getByRole('heading', { name: 'AWAITING LIVE EVIDENCE' })).toBeVisible()
-  await page.getByRole('button', { name: 'Run live sample' }).click()
+  await page.getByRole('button', { name: 'Load live sample' }).click()
+  await page.getByRole('button', { name: 'Run local preflight' }).click()
 
   await expect(page.getByRole('heading', { name: 'CLEAR TO SIGN' })).toBeVisible()
   await expect(page.getByText('Snapshot block 72370000')).toBeVisible()

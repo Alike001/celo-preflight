@@ -49,6 +49,7 @@ export function App() {
   const [statusMessage, setStatusMessage] = useState<string>()
   const [showLanding, setShowLanding] = useState(true)
   const [showDocs, setShowDocs] = useState(false)
+  const [pendingMentoSwap, setPendingMentoSwap] = useState<TransactionDraft>()
   const fromRef = useRef<HTMLInputElement>(null)
   const shouldFocusForm = useRef(false)
   const account = useAccount()
@@ -156,10 +157,13 @@ export function App() {
     setStatusMessage('Building a fresh USDm → KESm Mento route from current Celo state…')
     try {
       const proposal = await getLiveMentoProposal(account.address)
-      setTransaction(proposal.transaction)
+      setPendingMentoSwap(proposal.transaction)
+      setTransaction(proposal.approval ?? proposal.transaction)
       setStatus('idle')
       setStatusMessage(
-        `Live Mento route loaded: ${proposal.quote.hops} hop, ${proposal.quote.tradable ? 'tradable' : 'not tradable'}, ${proposal.approvalRequired ? 'approval required before swap.' : 'no approval required.'}`,
+        proposal.approval
+          ? `Step 1 of 2 loaded: inspect the bounded USDm approval first. After it is confirmed externally, build a fresh route before using the swap draft.`
+          : `Live Mento swap loaded: ${proposal.quote.hops} hop, ${proposal.quote.tradable ? 'tradable' : 'not tradable'}.`,
       )
     } catch (error) {
       setStatus('error')
@@ -225,6 +229,17 @@ export function App() {
                   setTransaction({ ...transaction, from: address })
                 }
                 onBuildMento={() => void buildMentoProposal()}
+                onLoadMentoSwap={
+                  pendingMentoSwap
+                    ? () => {
+                        setTransaction(pendingMentoSwap)
+                        setStatus('idle')
+                        setStatusMessage(
+                          'Step 2 draft loaded. Inspect it against a fresh Celo snapshot; rebuild the route after any approval is confirmed.',
+                        )
+                      }
+                    : undefined
+                }
               />
               <ExecutionPath decoded={report?.facts.decoded} />
               <ChecksTable

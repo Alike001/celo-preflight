@@ -62,7 +62,8 @@ export async function createApp(
   const mentoBuilder = inspector instanceof ChainInspector ? inspector : undefined
   const service = new ReportService(inspector, signer, reports, config.requiredAttributionCode)
   const payment =
-    overrides.payment ?? (await createPaymentCapability(config.payment, reports, config.rpcUrls[42220]))
+    overrides.payment ??
+    (await createPaymentCapability(config.payment, reports, config.rpcUrls[42220]))
   const mode: PrepareResponse['mode'] = payment.enabled ? 'hosted-paid' : 'local-free'
   const app = express()
   const webDist = webDistDirectory()

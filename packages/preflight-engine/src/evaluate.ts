@@ -1,12 +1,12 @@
 import type { CheckEvidence, InspectionFacts, Verdict } from '@preflight/shared'
 import {
-  approvalRule,
   decodeRule,
   feeCurrencyRule,
   mentoTradabilityRule,
   simulationRule,
   slippageDeadlineRule,
 } from './rules.js'
+import { approvalRule, erc20ReturnRule, tokenIdentityRule } from './token-rules.js'
 import { attributionRule } from './attribution.js'
 
 export interface Evaluation {
@@ -32,6 +32,8 @@ export function evaluateInspection(
   const checks = [
     simulationRule(facts),
     decodeRule(facts),
+    tokenIdentityRule(facts),
+    erc20ReturnRule(facts),
     approvalRule(facts),
     mentoTradabilityRule(facts),
     slippageDeadlineRule(facts),

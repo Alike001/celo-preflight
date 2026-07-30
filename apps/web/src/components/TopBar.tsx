@@ -39,7 +39,7 @@ export function TopBar({
           </select>
           <ChevronDown aria-hidden size={14} />
         </label>
-        <a href="/api/health" target="_blank" rel="noreferrer">
+        <a href="/api/openapi.json" target="_blank" rel="noreferrer">
           API
         </a>
         <button className="top-link" type="button" onClick={onOpenDocs}>
