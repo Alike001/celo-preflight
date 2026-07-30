@@ -52,5 +52,14 @@ export async function claimReportWithX402(
   if (!response.ok || !body.report) {
     throw new Error(paymentError(response, body))
   }
+
+  // Settlement hooks persist the receipt after the claim handler has built its
+  // response. Read the stored report once so the UI always shows the receipt
+  // that the server actually recorded, including an on-chain reconciliation.
+  const stored = await fetch(`/api/reports/${reportId}`)
+  if (stored.ok) {
+    const persisted = (await stored.json()) as { report?: PreparedReport }
+    if (persisted.report) return persisted.report
+  }
   return body.report
 }

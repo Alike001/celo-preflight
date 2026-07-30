@@ -61,7 +61,8 @@ export async function createApp(
   const inspector = overrides.inspector ?? new ChainInspector(config)
   const mentoBuilder = inspector instanceof ChainInspector ? inspector : undefined
   const service = new ReportService(inspector, signer, reports, config.requiredAttributionCode)
-  const payment = overrides.payment ?? (await createPaymentCapability(config.payment, reports))
+  const payment =
+    overrides.payment ?? (await createPaymentCapability(config.payment, reports, config.rpcUrls[42220]))
   const mode: PrepareResponse['mode'] = payment.enabled ? 'hosted-paid' : 'local-free'
   const app = express()
   const webDist = webDistDirectory()
@@ -192,6 +193,34 @@ export async function createApp(
       return
     }
     response.json({ report })
+  })
+
+  // Repair path for the exceptional case where Celo settled an x402
+  // authorization but its facilitator lost the receipt. This never submits a
+  // payment: it accepts only a mined, exact USDC authorization in the report's
+  // original validity window.
+  app.post('/api/preflight/recover', async (request, response) => {
+    const { reportId, transactionHash } = request.body as {
+      reportId?: unknown
+      transactionHash?: unknown
+    }
+    if (typeof reportId !== 'string' || typeof transactionHash !== 'string') {
+      throw new HttpError(400, 'reportId and transactionHash are required.')
+    }
+    if (!/^0x[0-9a-fA-F]{64}$/.test(transactionHash)) {
+      throw new HttpError(400, 'transactionHash must be a 32-byte transaction hash.')
+    }
+    if (!payment.recoverHistoricClaim) {
+      throw new HttpError(503, 'Historic x402 recovery is unavailable in this runtime.')
+    }
+    const report = await payment.recoverHistoricClaim(reportId, transactionHash as `0x${string}`)
+    if (!report) {
+      throw new HttpError(
+        422,
+        'No matching settled Celo USDC authorization was found for this report.',
+      )
+    }
+    response.json({ report, recovered: true })
   })
 
   if (payment.enabled && payment.middleware) {

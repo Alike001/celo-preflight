@@ -11,6 +11,7 @@ export interface ReportRepository {
   save(report: PreparedReport): void
   get(id: string): PreparedReport | undefined
   list(limit: number): PreparedReport[]
+  hasPaymentTransaction(transactionHash: string): boolean
   attachPayment(id: string, receipt: PaymentReceipt): PreparedReport | undefined
 }
 
@@ -63,6 +64,17 @@ export class ReportStore implements ReportRepository {
       .prepare('SELECT report_json FROM reports ORDER BY created_at DESC LIMIT ?')
       .all(Math.max(1, Math.min(limit, 100))) as unknown as ReportRow[]
     return rows.map((row) => JSON.parse(row.report_json) as PreparedReport)
+  }
+
+  hasPaymentTransaction(transactionHash: string): boolean {
+    const row = this.database
+      .prepare(
+        `SELECT 1 FROM reports
+         WHERE lower(json_extract(report_json, '$.payment.transactionHash')) = lower(?)
+         LIMIT 1`,
+      )
+      .get(transactionHash)
+    return Boolean(row)
   }
 
   attachPayment(id: string, receipt: PaymentReceipt): PreparedReport | undefined {
