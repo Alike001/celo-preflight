@@ -34,6 +34,53 @@ export interface MentoProposal {
   }
 }
 
+interface MentoCallParams {
+  to: string
+  value: string
+  data: string
+}
+
+interface MentoSwapBuild {
+  approval: MentoCallParams | null
+  swap: {
+    params: MentoCallParams
+    amountIn: bigint
+    expectedAmountOut: bigint
+    amountOutMin: bigint
+    deadline: bigint
+  }
+}
+
+export function toMentoProposal(
+  owner: Address,
+  route: { path: unknown[] },
+  tradable: boolean,
+  built: MentoSwapBuild,
+  requiredAttributionCode?: string,
+): MentoProposal {
+  const withAttribution = (data: `0x${string}`) =>
+    requiredAttributionCode ? concat([data, toDataSuffix(requiredAttributionCode)]) : data
+  const draft = (params: MentoCallParams): TransactionDraft => ({
+    chainId: 42220,
+    from: owner,
+    to: params.to as Address,
+    valueWei: BigInt(params.value).toString(),
+    data: withAttribution(params.data as `0x${string}`),
+  })
+  return {
+    transaction: draft(built.swap.params),
+    ...(built.approval ? { approval: draft(built.approval) } : {}),
+    quote: {
+      amountIn: built.swap.amountIn.toString(),
+      expectedAmountOut: built.swap.expectedAmountOut.toString(),
+      minimumAmountOut: built.swap.amountOutMin.toString(),
+      deadline: built.swap.deadline.toString(),
+      hops: route.path.length,
+      tradable,
+    },
+  }
+}
+
 function isRevert(error: unknown): boolean {
   const message = errorMessage(error).toLowerCase()
   return ['revert', 'invalid opcode', 'insufficient funds', 'execution error'].some((term) =>
@@ -228,7 +275,7 @@ export class ChainInspector {
       const mento = await Mento.create(42220, client as unknown as PublicClient)
       const route = await mento.routes.findRoute(USDm, KESm, { cached: false })
       const tradable = await mento.trading.isRouteTradable(route)
-      const { approval, swap } = await mento.swap.buildSwapTransaction(
+      const built = await mento.swap.buildSwapTransaction(
         USDm,
         KESm,
         amountIn,
@@ -237,36 +284,7 @@ export class ChainInspector {
         { slippageTolerance: 0.5, deadline: deadlineFromMinutes(5) },
         route,
       )
-      const withAttribution = (data: `0x${string}`) =>
-        requiredAttributionCode ? concat([data, toDataSuffix(requiredAttributionCode)]) : data
-      return {
-        transaction: {
-          chainId: 42220,
-          from: owner,
-          to: swap.params.to as Address,
-          valueWei: BigInt(swap.params.value).toString(),
-          data: withAttribution(swap.params.data as `0x${string}`),
-        },
-        ...(approval
-          ? {
-              approval: {
-                chainId: 42220,
-                from: owner,
-                to: approval.to as Address,
-                valueWei: BigInt(approval.value).toString(),
-                data: withAttribution(approval.data as `0x${string}`),
-              },
-            }
-          : {}),
-        quote: {
-          amountIn: swap.amountIn.toString(),
-          expectedAmountOut: swap.expectedAmountOut.toString(),
-          minimumAmountOut: swap.amountOutMin.toString(),
-          deadline: swap.deadline.toString(),
-          hops: route.path.length,
-          tradable,
-        },
-      }
+      return toMentoProposal(owner, route, tradable, built, requiredAttributionCode)
     } catch (error) {
       throw new HttpError(503, 'Mento could not build a live swap proposal.', errorMessage(error))
     }
