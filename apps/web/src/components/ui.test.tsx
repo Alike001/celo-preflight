@@ -45,13 +45,27 @@ describe('Flight Deck controls', () => {
   it('makes the real sample and manual inspection paths explicit', () => {
     const onLoadSample = vi.fn()
     const onInspect = vi.fn()
-    render(<LandingState onLoadSample={onLoadSample} onInspect={onInspect} />)
+    const onViewVerified = vi.fn()
+    render(
+      <LandingState
+        onLoadSample={onLoadSample}
+        onInspect={onInspect}
+        onViewVerified={onViewVerified}
+      />,
+    )
 
     fireEvent.click(screen.getByRole('button', { name: 'Load live sample' }))
     fireEvent.click(screen.getByRole('button', { name: 'Inspect your transaction' }))
+    fireEvent.click(screen.getByRole('button', { name: 'View verified report' }))
     expect(onLoadSample).toHaveBeenCalledOnce()
     expect(onInspect).toHaveBeenCalledOnce()
-    expect(screen.getByText(/does not connect a wallet or request payment/i)).toBeTruthy()
+    expect(onViewVerified).toHaveBeenCalledOnce()
+    expect(screen.getByText(/neither action connects a wallet or requests payment/i)).toBeTruthy()
+  })
+
+  it('does not promise a verified report when none exists', () => {
+    const emptyLanding = render(<LandingState onLoadSample={vi.fn()} onInspect={vi.fn()} />)
+    expect(emptyLanding.container.querySelector('.landing-proof')).toBeNull()
   })
 
   it('does not imply evidence exists before an inspection runs', () => {

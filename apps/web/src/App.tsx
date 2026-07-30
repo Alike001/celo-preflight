@@ -56,7 +56,6 @@ export function App() {
   const account = useAccount()
   const publicClient = usePublicClient({ chainId: 42220 })
   const { switchChainAsync } = useSwitchChain()
-
   function newInspection() {
     shouldFocusForm.current = true
     startTransition(() => {
@@ -69,14 +68,12 @@ export function App() {
       setStatusMessage(undefined)
     })
   }
-
   useEffect(() => {
     if (!showLanding && shouldFocusForm.current && fromRef.current) {
       fromRef.current.focus()
       shouldFocusForm.current = false
     }
   }, [showLanding])
-
   useEffect(() => {
     function keyboardShortcut(event: KeyboardEvent) {
       const target = event.target as HTMLElement | null
@@ -198,6 +195,7 @@ export function App() {
 
   const selectedCheck = report?.checks.find((check) => check.id === selectedCheckId)
   const capabilityMessage = capabilities.error ? message(capabilities.error) : undefined
+  const verifiedReportId = history.data?.find((candidate) => candidate.paid)?.id
 
   return (
     <div className="app-shell">
@@ -226,6 +224,9 @@ export function App() {
                 setStatusMessage('Sample input loaded. Review it, then explicitly run preflight.')
               }}
               onInspect={newInspection}
+              {...(verifiedReportId
+                ? { onViewVerified: () => void selectReport(verifiedReportId) }
+                : {})}
             />
           ) : (
             <>

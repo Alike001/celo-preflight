@@ -3,6 +3,7 @@ import { ArrowRight, EyeOff, FileCheck2, Play, Radio, ShieldCheck } from 'lucide
 interface LandingStateProps {
   onLoadSample: () => void
   onInspect: () => void
+  onViewVerified?: () => void
 }
 
 const workflow = [
@@ -29,7 +30,7 @@ const assurances = [
   },
 ] as const
 
-export function LandingState({ onLoadSample, onInspect }: LandingStateProps) {
+export function LandingState({ onLoadSample, onInspect, onViewVerified }: LandingStateProps) {
   return (
     <section className="landing-state" aria-labelledby="landing-heading">
       <div className="landing-intro">
@@ -45,10 +46,15 @@ export function LandingState({ onLoadSample, onInspect }: LandingStateProps) {
           <button className="landing-secondary" type="button" onClick={onInspect}>
             Inspect your transaction <ArrowRight aria-hidden />
           </button>
+          {onViewVerified && (
+            <button className="landing-proof" type="button" onClick={onViewVerified}>
+              <FileCheck2 aria-hidden /> View verified report
+            </button>
+          )}
         </div>
         <p className="landing-disclosure">
-          The sample supplies unsigned input only. Review it first; it does not connect a wallet or
-          request payment until you explicitly run preflight.
+          The sample supplies unsigned input only. View verified report opens existing evidence;
+          neither action connects a wallet or requests payment.
         </p>
       </div>
 

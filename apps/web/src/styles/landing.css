@@ -61,6 +61,15 @@
   background: var(--canvas);
 }
 
+.landing-proof {
+  border: 1px solid var(--border-strong);
+  background: var(--canvas);
+}
+
+.landing-proof:hover {
+  background: var(--white);
+}
+
 .landing-disclosure {
   max-width: 540px;
   margin-top: 14px;

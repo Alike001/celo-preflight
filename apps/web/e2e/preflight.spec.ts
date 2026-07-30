@@ -58,6 +58,18 @@ const report: PreparedReport = {
   signature: `0x${'d'.repeat(130)}`,
 }
 
+const paidReport: PreparedReport = {
+  ...report,
+  payment: {
+    network: 'eip155:42220',
+    transactionHash: `0x${'e'.repeat(64)}`,
+    payTo: `0x${'8'.repeat(40)}`,
+    amount: '10000',
+    asset: '0xcebA9300f2b948710d2653dD7B07f33A8B32118C',
+    settledAt: '2026-07-17T08:01:00.000Z',
+  },
+}
+
 async function mockApi(page: Page) {
   await page.route('**/api/**', async (route) => {
     const url = new URL(route.request().url())
@@ -74,7 +86,26 @@ async function mockApi(page: Page) {
       return
     }
     if (url.pathname === '/api/reports' && route.request().method() === 'GET') {
-      await json({ reports: [] })
+      await json({
+        reports: [
+          {
+            id: paidReport.id,
+            requestHash: paidReport.requestHash,
+            rulesetVersion: paidReport.rulesetVersion,
+            verdict: paidReport.verdict,
+            createdAt: paidReport.createdAt,
+            expiresAt: paidReport.expiresAt,
+            issuer: paidReport.issuer,
+            chainId: paidReport.facts.transaction.chainId,
+            to: paidReport.facts.transaction.to,
+            paid: true,
+          },
+        ],
+      })
+      return
+    }
+    if (url.pathname === `/api/reports/${paidReport.id}` && route.request().method() === 'GET') {
+      await json({ report: paidReport })
       return
     }
     if (url.pathname === '/api/preflight/prepare') {
@@ -116,6 +147,17 @@ test('opens the manual transaction form without an extra route', async ({ page }
   await page.getByRole('button', { name: 'Inspect your transaction' }).click()
   await expect(page.getByRole('heading', { name: 'Inspect before you sign' })).toBeVisible()
   await expect(page.getByRole('textbox', { name: 'From' })).toBeFocused()
+})
+
+test('opens an existing paid report without a wallet or payment', async ({ page }) => {
+  await mockApi(page)
+  await page.goto('/')
+
+  await page.getByRole('button', { name: 'View verified report' }).click()
+
+  await expect(page.getByRole('heading', { name: 'CLEAR TO SIGN' })).toBeVisible()
+  await expect(page.getByText('Snapshot block 72370000')).toBeVisible()
+  await expect(page.getByText(paidReport.payment!.transactionHash)).toBeVisible()
 })
 
 test('opens real product documentation from the application bar', async ({ page }) => {
