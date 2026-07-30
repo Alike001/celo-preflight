@@ -5,7 +5,7 @@ import type { Address, InspectionFacts, PaymentReceipt, PreparedReport } from '@
 import type { ApiConfig } from './config.js'
 import { HttpError } from './errors.js'
 import { createApp } from './app.js'
-import type { PaymentCapability } from './payment-layer.js'
+import { createPaymentCapability, type PaymentCapability } from './payment-layer.js'
 import type { ReportRepository } from './report-store.js'
 
 const address = (digit: string) => `0x${digit.repeat(40)}` as Address
@@ -152,6 +152,23 @@ describe('RPC failure handling', () => {
       .send(facts.transaction)
     expect(response.status).toBe(503)
     expect(response.body).toEqual({ error: 'Celo RPC is unavailable.' })
+  })
+})
+
+describe('Celo hosted facilitator credentials', () => {
+  it('fails closed instead of advertising a paid endpoint without its API key', async () => {
+    const capability = await createPaymentCapability(
+      {
+        facilitatorUrl: 'https://api.x402.celo.org',
+        payTo: address('8'),
+        price: '$0.01',
+      },
+      new MemoryReports(),
+    )
+    expect(capability).toMatchObject({
+      enabled: false,
+      reason: 'Celo hosted facilitator requires X402_FACILITATOR_API_KEY for settlement.',
+    })
   })
 })
 

@@ -8,6 +8,7 @@ export interface ApiConfig {
   requiredAttributionCode?: string
   payment?: {
     facilitatorUrl: string
+    facilitatorApiKey?: string
     payTo: Address
     price: string
   }
@@ -15,6 +16,7 @@ export interface ApiConfig {
 
 function paymentConfig(): ApiConfig['payment'] {
   const facilitatorUrl = process.env.X402_FACILITATOR_URL
+  const facilitatorApiKey = process.env.X402_FACILITATOR_API_KEY?.trim()
   const payTo = process.env.X402_PAY_TO
   const price = process.env.X402_PRICE
   if (!facilitatorUrl || !payTo || !price) return undefined
@@ -24,7 +26,12 @@ function paymentConfig(): ApiConfig['payment'] {
   if (!/^\$\d+(?:\.\d+)?$/.test(price)) {
     throw new Error('X402_PRICE must be a dollar price such as $0.01')
   }
-  return { facilitatorUrl, payTo: payTo as Address, price }
+  return {
+    facilitatorUrl,
+    ...(facilitatorApiKey ? { facilitatorApiKey } : {}),
+    payTo: payTo as Address,
+    price,
+  }
 }
 
 export function loadConfig(): ApiConfig {

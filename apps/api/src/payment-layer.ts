@@ -52,6 +52,14 @@ export function paymentRejectionReason(header: string | undefined): string | und
 
 type HostedPaymentConfig = NonNullable<ApiConfig['payment']>
 
+function usesCeloHostedFacilitator(config: HostedPaymentConfig) {
+  return new URL(config.facilitatorUrl).hostname === 'api.x402.celo.org'
+}
+
+function facilitatorHeaders(config: HostedPaymentConfig) {
+  return config.facilitatorApiKey ? { 'X-API-Key': config.facilitatorApiKey } : {}
+}
+
 function paymentRequirements(config: HostedPaymentConfig) {
   return {
     scheme: 'exact',
@@ -70,7 +78,7 @@ async function traceFacilitatorVerification(
     const paymentPayload = decodePaymentSignatureHeader(paymentSignature)
     const response = await fetch(`${config.facilitatorUrl.replace(/\/+$/, '')}/verify`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', ...facilitatorHeaders(config) },
       body: JSON.stringify({
         x402Version: paymentPayload.x402Version,
         paymentPayload,
@@ -157,7 +165,21 @@ export async function createPaymentCapability(
   if (!config) {
     return { enabled: false, network: NETWORK, reason: 'Hosted payment is not configured.' }
   }
-  const facilitator = new HTTPFacilitatorClient({ url: config.facilitatorUrl })
+  if (usesCeloHostedFacilitator(config) && !config.facilitatorApiKey) {
+    return {
+      enabled: false,
+      network: NETWORK,
+      reason: 'Celo hosted facilitator requires X402_FACILITATOR_API_KEY for settlement.',
+    }
+  }
+  const facilitator = new HTTPFacilitatorClient({
+    url: config.facilitatorUrl,
+    createAuthHeaders: async () => ({
+      verify: facilitatorHeaders(config),
+      settle: facilitatorHeaders(config),
+      supported: facilitatorHeaders(config),
+    }),
+  })
   try {
     const supported = await timeout(facilitator.getSupported(), 4_000)
     const exactCelo = supported.kinds.some(
