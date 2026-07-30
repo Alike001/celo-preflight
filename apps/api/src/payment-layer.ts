@@ -127,6 +127,17 @@ function reportIdFromTransport(transportContext: unknown): string | undefined {
   }
 }
 
+function settlementFailureDetails(error: unknown) {
+  const value = error && typeof error === 'object' ? (error as Record<string, unknown>) : undefined
+  return {
+    name: error instanceof Error ? error.name : 'Unknown error',
+    message: error instanceof Error ? error.message : 'Unknown error',
+    ...(typeof value?.status === 'number' ? { status: value.status } : {}),
+    ...(typeof value?.statusCode === 'number' ? { statusCode: value.statusCode } : {}),
+    ...(typeof value?.code === 'string' ? { code: value.code } : {}),
+  }
+}
+
 export async function createPaymentCapability(
   config: ApiConfig['payment'],
   reports: ReportRepository,
@@ -156,6 +167,12 @@ export async function createPaymentCapability(
   }
 
   const resourceServer = new x402ResourceServer(facilitator).register(NETWORK, new ExactEvmScheme())
+  resourceServer.onSettleFailure(async ({ error }) => {
+    // A successful `/verify` can still be followed by a failed `/settle`.
+    // Keep this log deliberately redacted: it identifies the facilitator
+    // failure without writing a wallet authorization or payment payload.
+    console.error('x402 facilitator settlement failed.', settlementFailureDetails(error))
+  })
   resourceServer.onAfterSettle(async ({ result, requirements, transportContext }) => {
     try {
       const reportId = reportIdFromTransport(transportContext)
