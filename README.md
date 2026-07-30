@@ -6,7 +6,7 @@ It never broadcasts the transaction. AI never chooses the verdict.
 
 **Try the live product:** [celo-preflight-production.up.railway.app](https://celo-preflight-production.up.railway.app). For a no-cost local run, follow the two commands below; hosted reports use x402 only after a user explicitly claims a prepared report.
 
-## Run it in 30 seconds
+## Try it in 30 seconds
 
 Requirements: Node.js 22+ and pnpm 10.33.1.
 
@@ -49,7 +49,11 @@ x402 payment, or broadcasts a transaction.
 
 Hosted paid claims remain disabled unless the Celo facilitator URL, API key, seller address, and price in [`apps/api/.env.example`](apps/api/.env.example) are configured **and** the facilitator advertises x402 v2 `exact` settlement on `eip155:42220`. Create the API key at [x402.celo.org](https://x402.celo.org) by signing a message with the seller wallet; this is not a transaction and includes initial settlement credits. Add it to Railway only as `X402_FACILITATOR_API_KEY`—never to Git or the browser. A report is computed before payment, so invalid input or an unavailable RPC cannot charge the user. A successful claim stores only the real facilitator settlement receipt.
 
-The public Celo facilitator was not DNS-reachable from this environment on July 17, 2026, so the shipped default is factual local-free mode rather than a simulated payment flow.
+## Agent integration and public proof
+
+Agents can start with the deployed [integration quickstart](https://celo-preflight-production.up.railway.app/api/agent.md) and [OpenAPI contract](https://celo-preflight-production.up.railway.app/api/openapi.json). The flow is deliberately narrow: prepare an unsigned proposal, claim its fresh signed report once through x402 when hosted mode requires it, then use the verdict as a pre-sign policy gate. Preflight never submits the proposed transaction.
+
+The public [impact endpoint](https://celo-preflight-production.up.railway.app/api/impact) publishes aggregate issuer-bound claim and distinct-payer counts only. It does not expose payer addresses, private payment authorizations, or claim a unique-human count; repeated claim requests return the existing report rather than creating a settlement.
 
 ## Railway deployment
 

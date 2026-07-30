@@ -7,12 +7,20 @@ interface ReportRow {
   report_json: string
 }
 
+export interface PaymentMetrics {
+  /** Settled reports with an issuer-bound x402 receipt. */
+  settledReports: number
+  /** Distinct payer addresses represented by those receipts. */
+  distinctPayers: number
+}
+
 export interface ReportRepository {
   save(report: PreparedReport): void
   get(id: string): PreparedReport | undefined
   list(limit: number): PreparedReport[]
   hasPaymentTransaction(transactionHash: string): boolean
   attachPayment(id: string, receipt: PaymentReceipt): PreparedReport | undefined
+  paymentMetrics(): PaymentMetrics
 }
 
 export class ReportStore implements ReportRepository {
@@ -75,6 +83,20 @@ export class ReportStore implements ReportRepository {
       )
       .get(transactionHash)
     return Boolean(row)
+  }
+
+  paymentMetrics(): PaymentMetrics {
+    const row = this.database
+      .prepare(
+        `SELECT
+           count(*) AS settled_reports,
+           count(DISTINCT lower(json_extract(report_json, '$.payment.payer'))) AS distinct_payers
+         FROM reports
+         WHERE json_extract(report_json, '$.payment.transactionHash') IS NOT NULL
+           AND json_extract(report_json, '$.paymentSignature') IS NOT NULL`,
+      )
+      .get() as { settled_reports: number; distinct_payers: number }
+    return { settledReports: row.settled_reports, distinctPayers: row.distinct_payers }
   }
 
   attachPayment(id: string, receipt: PaymentReceipt): PreparedReport | undefined {

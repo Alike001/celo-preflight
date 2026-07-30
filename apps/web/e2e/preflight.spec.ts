@@ -228,6 +228,14 @@ test('opens real product documentation from the application bar', async ({ page 
 
   await expect(page.getByRole('dialog', { name: 'How Celo Preflight works' })).toBeVisible()
   await expect(page.getByText(/preflight does not submit your transaction/i)).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Open agent quickstart' })).toHaveAttribute(
+    'href',
+    '/api/agent.md',
+  )
+  await expect(page.getByRole('link', { name: 'View public x402 evidence' })).toHaveAttribute(
+    'href',
+    '/api/impact',
+  )
   await page.getByRole('button', { name: 'Close documentation' }).click()
   await expect(page.getByRole('dialog')).toBeHidden()
 })

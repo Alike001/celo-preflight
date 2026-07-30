@@ -6,7 +6,7 @@ import type { ApiConfig } from './config.js'
 import { HttpError } from './errors.js'
 import { createApp } from './app.js'
 import { createPaymentCapability, type PaymentCapability } from './payment-layer.js'
-import type { ReportRepository } from './report-store.js'
+import type { PaymentMetrics, ReportRepository } from './report-store.js'
 
 const address = (digit: string) => `0x${digit.repeat(40)}` as Address
 
@@ -32,6 +32,19 @@ class MemoryReports implements ReportRepository {
     const updated = { ...report, payment: receipt }
     this.save(updated)
     return updated
+  }
+  paymentMetrics(): PaymentMetrics {
+    const reports = [...this.values.values()].filter(
+      (report) => report.payment?.transactionHash && report.paymentSignature,
+    )
+    return {
+      settledReports: reports.length,
+      distinctPayers: new Set(
+        reports.flatMap((report) =>
+          report.payment?.payer ? [report.payment.payer.toLowerCase()] : [],
+        ),
+      ).size,
+    }
   }
 }
 
@@ -91,6 +104,26 @@ describe('Celo Preflight API', () => {
     expect(response.status).toBe(200)
     expect(response.body.paths).toHaveProperty('/api/preflight/prepare')
     expect(response.body.paths).toHaveProperty('/api/mento/live-usdm-kesm-proposal')
+    expect(response.body.paths).toHaveProperty('/api/impact')
+  })
+
+  it('publishes a factual agent integration guide', async () => {
+    const response = await request(app).get('/api/agent.md')
+    expect(response.status).toBe(200)
+    expect(response.text).toContain('never broadcasts')
+    expect(response.text).toContain('POST /api/preflight/prepare')
+    expect(response.text).toContain('local-free mode')
+  })
+
+  it('exposes only aggregate, issuer-bound payment evidence', async () => {
+    const response = await request(app).get('/api/impact')
+    expect(response.status).toBe(200)
+    expect(response.body).toMatchObject({
+      metric: 'issuer-bound-x402-claims',
+      settledReports: 0,
+      distinctPayers: 0,
+    })
+    expect(JSON.stringify(response.body)).not.toContain(address('1'))
   })
 
   it('validates Mento proposal input before attempting a live route', async () => {

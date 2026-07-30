@@ -15,7 +15,7 @@ import {
 import { ReportService } from './report-service.js'
 import { ReportSigner } from './report-signer.js'
 import { ReportStore, type ReportRepository } from './report-store.js'
-import { reportSummary, webDistDirectory } from './app-helpers.js'
+import { agentQuickstart, openApiDocument, reportSummary, webDistDirectory } from './app-helpers.js'
 
 export interface AppOverrides {
   reports?: ReportRepository
@@ -83,60 +83,11 @@ export async function createApp(
   })
 
   app.get('/api/openapi.json', (_request, response) => {
-    response.json({
-      openapi: '3.1.0',
-      info: {
-        title: 'Celo Preflight API',
-        version: '1.0.0',
-        description:
-          'Agent and wallet intake for unsigned Celo transaction proposals. This API never broadcasts the proposed transaction.',
-      },
-      paths: {
-        '/api/preflight/prepare': {
-          post: {
-            summary: 'Simulate and inspect an unsigned Celo transaction proposal.',
-            requestBody: {
-              required: true,
-              content: {
-                'application/json': {
-                  schema: {
-                    type: 'object',
-                    required: ['chainId', 'from', 'to', 'valueWei', 'data'],
-                    properties: {
-                      chainId: { enum: [42220, 11142220] },
-                      from: { type: 'string', pattern: '^0x[a-fA-F0-9]{40}$' },
-                      to: { type: 'string', pattern: '^0x[a-fA-F0-9]{40}$' },
-                      valueWei: { type: 'string', pattern: '^\\d+$' },
-                      data: { type: 'string', pattern: '^0x[a-fA-F0-9]*$' },
-                      feeCurrency: { type: 'string', pattern: '^0x[a-fA-F0-9]{40}$' },
-                    },
-                  },
-                },
-              },
-            },
-            responses: {
-              '201': { description: 'Signed inspection report or a hosted claim requirement.' },
-              '400': { description: 'Invalid unsigned transaction proposal.' },
-              '503': { description: 'Celo state could not be inspected.' },
-            },
-          },
-        },
-        '/api/mento/live-usdm-kesm-proposal': {
-          post: {
-            summary: 'Build a current unsigned USDm-to-KESm Mento proposal from live chain data.',
-            description:
-              'Returns a proposal only. The caller must separately inspect it and decide whether to sign; this API never broadcasts.',
-          },
-        },
-        '/api/reports/{id}/replay': {
-          post: {
-            summary: 'Re-run an existing report against its recorded Celo block.',
-            description:
-              'Read-only historical verification. Mento current tradability is not substituted for historical chain state.',
-          },
-        },
-      },
-    })
+    response.json(openApiDocument())
+  })
+
+  app.get('/api/agent.md', (_request, response) => {
+    response.type('text/markdown').send(agentQuickstart(payment))
   })
 
   app.post('/api/preflight/prepare', async (request, response) => {
@@ -169,6 +120,18 @@ export async function createApp(
     const parsed = Number(request.query.limit ?? '30')
     const limit = Number.isFinite(parsed) ? parsed : 30
     response.json({ reports: reports.list(limit).map(reportSummary) })
+  })
+
+  app.get('/api/impact', (_request, response) => {
+    response.json({
+      metric: 'issuer-bound-x402-claims',
+      ...reports.paymentMetrics(),
+      notes: [
+        'Counts only reports with a Celo x402 receipt separately signed by the report issuer.',
+        'Distinct payer count excludes receipts that did not disclose a payer address.',
+        'Counts are product evidence, not a claim of unique humans or leaderboard rank.',
+      ],
+    })
   })
 
   app.get('/api/reports/:id', (request, response) => {
