@@ -1,6 +1,6 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express'
 import { HTTPFacilitatorClient, x402ResourceServer } from '@x402/core/server'
-import { decodePaymentRequiredHeader, decodePaymentSignatureHeader } from '@x402/core/http'
+import { decodePaymentRequiredHeader } from '@x402/core/http'
 import { ExactEvmScheme } from '@x402/evm/exact/server'
 import { paymentMiddleware } from '@x402/express'
 import type { Address, Hex, PaymentReceipt, PreparedReport } from '@preflight/shared'
@@ -60,57 +60,9 @@ function facilitatorHeaders(config: HostedPaymentConfig) {
   return config.facilitatorApiKey ? { 'X-API-Key': config.facilitatorApiKey } : {}
 }
 
-function paymentRequirements(config: HostedPaymentConfig) {
-  return {
-    scheme: 'exact',
-    network: NETWORK,
-    ...usdcExactPrice(config.price),
-    payTo: config.payTo,
-    maxTimeoutSeconds: 300,
-  }
-}
-
-async function traceFacilitatorVerification(
-  paymentSignature: string,
-  config: HostedPaymentConfig,
-) {
-  try {
-    const paymentPayload = decodePaymentSignatureHeader(paymentSignature)
-    const response = await fetch(`${config.facilitatorUrl.replace(/\/+$/, '')}/verify`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', ...facilitatorHeaders(config) },
-      body: JSON.stringify({
-        x402Version: paymentPayload.x402Version,
-        paymentPayload,
-        paymentRequirements: paymentRequirements(config),
-      }),
-    })
-    const body = (await response.json().catch(() => ({}))) as {
-      isValid?: unknown
-      invalidReason?: unknown
-      invalidReasonDetails?: unknown
-    }
-    console.warn('x402 facilitator raw verification result.', {
-      status: response.status,
-      isValid: body.isValid === true,
-      invalidReason: typeof body.invalidReason === 'string' ? body.invalidReason : 'none',
-      invalidReasonDetails:
-        typeof body.invalidReasonDetails === 'string' ? body.invalidReasonDetails : 'none',
-    })
-  } catch (error) {
-    console.warn('x402 facilitator raw verification request failed.', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-    })
-  }
-}
-
-function withPaymentDiagnostics(
-  middleware: RequestHandler,
-  config: HostedPaymentConfig,
-): RequestHandler {
+function withPaymentDiagnostics(middleware: RequestHandler): RequestHandler {
   return async (request: Request, response: Response, next: NextFunction) => {
     const paymentSignature = request.header('payment-signature') ?? request.header('x-payment')
-    if (paymentSignature) await traceFacilitatorVerification(paymentSignature, config)
     response.once('finish', () => {
       if (!paymentSignature || response.statusCode !== 402) return
       const header = response.getHeader('payment-required')
@@ -253,7 +205,7 @@ export async function createPaymentCapability(
         },
       },
       resourceServer,
-    ), config),
+    )),
   }
 }
 
