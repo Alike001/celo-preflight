@@ -12,10 +12,12 @@ export function EvidenceInspector({
   report,
   selectedCheck,
   landing = false,
+  onReplay,
 }: {
   report?: PreparedReport | undefined
   selectedCheck?: CheckEvidence | undefined
   landing?: boolean | undefined
+  onReplay?: (() => void) | undefined
 }) {
   const [showRaw, setShowRaw] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -71,6 +73,11 @@ export function EvidenceInspector({
           <button type="button" disabled={!report} onClick={() => setShowVerifier(true)}>
             <FileSignature aria-hidden /> Verify signature
           </button>
+          {onReplay && (
+            <button type="button" disabled={!report} onClick={onReplay}>
+              <FileSignature aria-hidden /> Re-run snapshot
+            </button>
+          )}
         </div>
       </section>
 

@@ -57,6 +57,8 @@ Every report includes its normalized request hash, chain and snapshot state, rul
 
 The report inspector includes a browser-only **Verify signature** tool that recomputes a report hash and recovers the signing address without calling the Preflight server. Wallets and agents can submit the same unsigned proposal shape through the [live OpenAPI contract](https://celo-preflight-production.up.railway.app/api/openapi.json); the API only simulates and reports—it never broadcasts the proposal.
 
+Stored reports include **Re-run snapshot**, a read-only replay against the report’s exact recorded Celo block. It reuses the original unsigned transaction and ruleset; for historical Mento calls, current tradability is deliberately not substituted for past state, so that missing historical proof remains `CAUTION` rather than being silently invented.
+
 For a live Mento proof, `POST /api/mento/live-usdm-kesm-proposal` with an `owner` address and positive `amountInWei`. It queries a fresh USDm → KESm route, current tradability, a quote, minimum output, deadline, and returns a separate bounded approval draft when one is required. Inspect the approval first; after it confirms externally, build a fresh route and inspect the swap. It does not invent a route or submit either transaction.
 
 Set `REQUIRED_ATTRIBUTION_TAG` to the exact organizer-assigned `celo_…` tag before attempting Track 1 activity. A different tag, or merely any attribution suffix, does not receive this project's credit.

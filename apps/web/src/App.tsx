@@ -10,6 +10,7 @@ import {
   getLiveMentoProposal,
   getReport,
   prepareReport,
+  replayReport,
 } from './api.js'
 import { createSampleTransaction } from './sample.js'
 import { wagmiConfig } from './wagmi.js'
@@ -151,6 +152,30 @@ export function App() {
     }
   }
 
+  async function replaySnapshot() {
+    if (!report) return
+    setStatus('preparing')
+    setStatusMessage(`Re-running at recorded Celo block ${report.facts.snapshot.blockNumber}…`)
+    try {
+      const replay = await replayReport(report.id)
+      const replayed: PreparedReport = {
+        ...report,
+        facts: replay.facts,
+        verdict: replay.verdict,
+        checks: replay.checks,
+      }
+      setReport(replayed)
+      setSelectedCheckId(replayed.checks[0]?.id)
+      setStatus('complete')
+      setStatusMessage(
+        `Re-run completed at original Celo block ${replayed.facts.snapshot.blockNumber}.`,
+      )
+    } catch (error) {
+      setStatus('error')
+      setStatusMessage(message(error))
+    }
+  }
+
   async function buildMentoProposal() {
     if (!account.address) return
     setStatus('preparing')
@@ -260,7 +285,12 @@ export function App() {
             </>
           )}
         </div>
-        <EvidenceInspector report={report} selectedCheck={selectedCheck} landing={showLanding} />
+        <EvidenceInspector
+          report={report}
+          selectedCheck={selectedCheck}
+          landing={showLanding}
+          onReplay={() => void replaySnapshot()}
+        />
       </main>
       <DocsDialog open={showDocs} onClose={() => setShowDocs(false)} />
     </div>

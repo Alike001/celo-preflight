@@ -41,6 +41,13 @@ export interface MentoProposal {
   }
 }
 
+export interface ReplayResult {
+  reportId: string
+  facts: PreparedReport['facts']
+  verdict: Verdict
+  checks: PreparedReport['checks']
+}
+
 async function json<T>(response: Response): Promise<T> {
   const body = (await response.json()) as T & { error?: string; issues?: string[] }
   if (!response.ok) {
@@ -62,6 +69,10 @@ export async function getHistory(): Promise<ReportSummary[]> {
 export async function getReport(id: string): Promise<PreparedReport> {
   const body = await json<{ report: PreparedReport }>(await fetch(`/api/reports/${id}`))
   return body.report
+}
+
+export async function replayReport(id: string): Promise<ReplayResult> {
+  return json(await fetch(`/api/reports/${id}/replay`, { method: 'POST' }))
 }
 
 export async function prepareReport(transaction: TransactionDraft): Promise<PrepareResponse> {

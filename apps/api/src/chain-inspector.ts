@@ -97,9 +97,15 @@ async function enrichMento(
   client: CeloPublicClient,
   facts: InspectionFacts,
   blockNumber: bigint,
+  readCurrentTradability = true,
 ): Promise<void> {
   if (facts.decoded.kind !== 'mento-swap') return
   const decoded = facts.decoded
+  if (!readCurrentTradability) {
+    facts.snapshot.stateNote =
+      'Simulation, quote, and fee-currency evidence use the exact snapshot block. Mento current tradability is intentionally not substituted for historical state.'
+    return
+  }
   try {
     const amounts = await client.readContract({
       address: decoded.router,
@@ -153,7 +159,41 @@ export class ChainInspector {
     if (block.number === null) {
       throw new HttpError(503, 'Celo RPC returned a pending block without a block number.')
     }
-    const simulation = await simulate(client, transaction, block.number)
+    return this.inspectAtBlock(
+      transaction,
+      block.number,
+      block.hash ?? undefined,
+      block.timestamp,
+      true,
+    )
+  }
+
+  /** Re-runs deterministic inspection reads at an existing Celo block. Never broadcasts. */
+  async inspectAtBlock(
+    transaction: TransactionDraft,
+    blockNumber: bigint,
+    expectedHash?: `0x${string}`,
+    expectedTimestamp?: bigint,
+    includeCurrentMentoTradability = false,
+  ): Promise<InspectionFacts> {
+    const client = createChainClient(transaction.chainId, this.config.rpcUrls[transaction.chainId])
+    let block
+    try {
+      block = await client.getBlock({ blockNumber })
+    } catch (error) {
+      throw new HttpError(
+        503,
+        'Celo RPC could not read the requested snapshot block.',
+        errorMessage(error),
+      )
+    }
+    if (
+      block.number === null ||
+      (expectedHash && block.hash?.toLowerCase() !== expectedHash.toLowerCase())
+    ) {
+      throw new HttpError(409, 'Celo snapshot block does not match the original report.')
+    }
+    const simulation = await simulate(client, transaction, blockNumber)
     if (simulation.status === 'unavailable') {
       throw new HttpError(503, 'Celo RPC could not simulate this transaction.', simulation.error)
     }
@@ -161,10 +201,10 @@ export class ChainInspector {
     const facts: InspectionFacts = {
       transaction,
       snapshot: {
-        blockNumber: block.number.toString(),
+        blockNumber: blockNumber.toString(),
         ...(block.hash ? { blockHash: block.hash } : {}),
-        observedAt: Number(block.timestamp),
-        stateNote: 'All available evidence uses the snapshot block.',
+        observedAt: Number(expectedTimestamp ?? block.timestamp),
+        stateNote: 'All available evidence uses the exact snapshot block.',
       },
       simulation,
       decoded: decodeTransaction(transaction),
@@ -172,7 +212,7 @@ export class ChainInspector {
     }
     const allowed = await feeCurrencyAllowed(client, transaction.feeCurrency, block.number)
     if (allowed !== undefined) facts.feeCurrencyAllowed = allowed
-    await enrichMento(client, facts, block.number)
+    await enrichMento(client, facts, blockNumber, includeCurrentMentoTradability)
     return facts
   }
 

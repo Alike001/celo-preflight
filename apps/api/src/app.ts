@@ -1,10 +1,9 @@
 import express, { type ErrorRequestHandler } from 'express'
-import { existsSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { dirname, resolve } from 'node:path'
+import { resolve } from 'node:path'
 import { isAddress } from 'viem'
 import type { Address, PrepareResponse, PreparedReport } from '@preflight/shared'
 import { parseTransactionDraft, ValidationError } from '@preflight/shared'
+import { evaluateInspection } from '@preflight/engine'
 import { ChainInspector } from './chain-inspector.js'
 import type { ApiConfig } from './config.js'
 import { HttpError } from './errors.js'
@@ -16,6 +15,7 @@ import {
 import { ReportService } from './report-service.js'
 import { ReportSigner } from './report-signer.js'
 import { ReportStore, type ReportRepository } from './report-store.js'
+import { reportSummary, webDistDirectory } from './app-helpers.js'
 
 export interface AppOverrides {
   reports?: ReportRepository
@@ -29,28 +29,6 @@ export interface AppRuntime {
   payment: PaymentCapability
 }
 
-function summary(report: PreparedReport) {
-  return {
-    id: report.id,
-    requestHash: report.requestHash,
-    rulesetVersion: report.rulesetVersion,
-    verdict: report.verdict,
-    createdAt: report.createdAt,
-    expiresAt: report.expiresAt,
-    issuer: report.issuer,
-    chainId: report.facts.transaction.chainId,
-    to: report.facts.transaction.to,
-    paid: Boolean(report.payment),
-  }
-}
-
-function webDistDirectory(): string | undefined {
-  const configured = process.env.WEB_DIST_DIR
-  const bundled = resolve(dirname(fileURLToPath(import.meta.url)), '../../web/dist')
-  const directory = configured ?? bundled
-  return existsSync(resolve(directory, 'index.html')) ? directory : undefined
-}
-
 export async function createApp(
   config: ApiConfig,
   overrides: AppOverrides = {},
@@ -60,6 +38,7 @@ export async function createApp(
     overrides.signer ?? (await ReportSigner.create(config.dataDir, config.reportSignerPrivateKey))
   const inspector = overrides.inspector ?? new ChainInspector(config)
   const mentoBuilder = inspector instanceof ChainInspector ? inspector : undefined
+  const replayInspector = inspector instanceof ChainInspector ? inspector : undefined
   const service = new ReportService(inspector, signer, reports, config.requiredAttributionCode)
   const payment =
     overrides.payment ??
@@ -149,6 +128,13 @@ export async function createApp(
               'Returns a proposal only. The caller must separately inspect it and decide whether to sign; this API never broadcasts.',
           },
         },
+        '/api/reports/{id}/replay': {
+          post: {
+            summary: 'Re-run an existing report against its recorded Celo block.',
+            description:
+              'Read-only historical verification. Mento current tradability is not substituted for historical chain state.',
+          },
+        },
       },
     })
   })
@@ -182,7 +168,7 @@ export async function createApp(
   app.get('/api/reports', (request, response) => {
     const parsed = Number(request.query.limit ?? '30')
     const limit = Number.isFinite(parsed) ? parsed : 30
-    response.json({ reports: reports.list(limit).map(summary) })
+    response.json({ reports: reports.list(limit).map(reportSummary) })
   })
 
   app.get('/api/reports/:id', (request, response) => {
@@ -199,6 +185,32 @@ export async function createApp(
       return
     }
     response.json({ report })
+  })
+
+  app.post('/api/reports/:id/replay', async (request, response) => {
+    const report = reports.get(request.params.id)
+    if (!report) throw new HttpError(404, 'Report not found.')
+    if (payment.enabled && !report.payment) {
+      throw new HttpError(402, 'This hosted report must be claimed through x402.')
+    }
+    if (!replayInspector) {
+      throw new HttpError(503, 'Exact-snapshot replay is unavailable in this API runtime.')
+    }
+    const facts = await replayInspector.inspectAtBlock(
+      report.facts.transaction,
+      BigInt(report.facts.snapshot.blockNumber),
+      report.facts.snapshot.blockHash,
+      BigInt(report.facts.snapshot.observedAt),
+    )
+    const evaluation = evaluateInspection(facts, {
+      requiredAttributionCode: config.requiredAttributionCode,
+    })
+    response.json({
+      reportId: report.id,
+      facts,
+      verdict: evaluation.verdict,
+      checks: evaluation.checks,
+    })
   })
 
   // Repair path for the exceptional case where Celo settled an x402
