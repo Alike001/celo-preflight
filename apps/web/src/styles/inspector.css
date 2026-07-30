@@ -20,6 +20,9 @@
 .panel-block {
   box-shadow: inset 4px 0 var(--red);
 }
+.panel-expired {
+  box-shadow: inset 4px 0 var(--amber);
+}
 
 .verdict-line {
   display: flex;
@@ -32,6 +35,13 @@
   width: 24px;
   height: 24px;
   padding: 4px;
+}
+
+.verdict-freshness-icon {
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+  color: var(--amber);
 }
 
 .verdict-line h2 {

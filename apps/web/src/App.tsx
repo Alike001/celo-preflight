@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAccount, usePublicClient, useSwitchChain } from 'wagmi'
 import { getWalletClient } from 'wagmi/actions'
 import type { PublicClient, WalletClient } from 'viem'
-import type { PreparedReport, SupportedChainId, TransactionDraft, Verdict } from '@preflight/shared'
+import type { PreparedReport, TransactionDraft, Verdict } from '@preflight/shared'
 import {
   getCapabilities,
   getHistory,
@@ -13,6 +13,8 @@ import {
   replayReport,
 } from './api.js'
 import { createSampleTransaction } from './sample.js'
+import { isReportExpired } from './report-freshness.js'
+import { emptyTransaction, errorMessage } from './app-utils.js'
 import { wagmiConfig } from './wagmi.js'
 import { ChecksTable } from './components/ChecksTable.js'
 import { DocsDialog } from './components/DocsDialog.js'
@@ -20,23 +22,9 @@ import { EvidenceInspector } from './components/EvidenceInspector.js'
 import { ExecutionPath } from './components/ExecutionPath.js'
 import { InspectionRail } from './components/InspectionRail.js'
 import { LandingState } from './components/LandingState.js'
+import { StateFooter } from './components/StateFooter.js'
 import { TopBar } from './components/TopBar.js'
 import { TransactionForm, type FormStatus } from './components/TransactionForm.js'
-
-function emptyTransaction(chainId: SupportedChainId = 42220): TransactionDraft {
-  return {
-    chainId,
-    from: '' as `0x${string}`,
-    to: '' as `0x${string}`,
-    valueWei: '0',
-    data: '0x',
-  }
-}
-
-function message(error: unknown) {
-  return error instanceof Error ? error.message : 'The inspection could not be completed.'
-}
-
 export function App() {
   const queryClient = useQueryClient()
   const capabilities = useQuery({ queryKey: ['capabilities'], queryFn: getCapabilities })
@@ -128,7 +116,7 @@ export function App() {
       await queryClient.invalidateQueries({ queryKey: ['history'] })
     } catch (error) {
       setStatus('error')
-      setStatusMessage(message(error))
+      setStatusMessage(errorMessage(error))
     }
   }
 
@@ -142,10 +130,14 @@ export function App() {
       setReport(selected)
       setSelectedCheckId(selected.checks[0]?.id)
       setStatus('complete')
-      setStatusMessage(`${selected.verdict} at Celo block ${selected.facts.snapshot.blockNumber}.`)
+      setStatusMessage(
+        isReportExpired(selected)
+          ? `Historical ${selected.verdict} from Celo block ${selected.facts.snapshot.blockNumber}. It is expired and is not signing guidance.`
+          : `${selected.verdict} at Celo block ${selected.facts.snapshot.blockNumber}.`,
+      )
     } catch (error) {
       setStatus('error')
-      setStatusMessage(message(error))
+      setStatusMessage(errorMessage(error))
     }
   }
 
@@ -169,7 +161,7 @@ export function App() {
       )
     } catch (error) {
       setStatus('error')
-      setStatusMessage(message(error))
+      setStatusMessage(errorMessage(error))
     }
   }
 
@@ -189,13 +181,16 @@ export function App() {
       )
     } catch (error) {
       setStatus('error')
-      setStatusMessage(message(error))
+      setStatusMessage(errorMessage(error))
     }
   }
 
   const selectedCheck = report?.checks.find((check) => check.id === selectedCheckId)
-  const capabilityMessage = capabilities.error ? message(capabilities.error) : undefined
-  const verifiedReportId = history.data?.find((candidate) => candidate.paid)?.id
+  const capabilityMessage = capabilities.error ? errorMessage(capabilities.error) : undefined
+  const freshVerifiedReportId = history.data?.find(
+    (candidate) => candidate.paid && !isReportExpired(candidate),
+  )?.id
+  const historicalPaidReportId = history.data?.find((candidate) => candidate.paid)?.id
 
   return (
     <div className="app-shell">
@@ -207,11 +202,14 @@ export function App() {
       <main className="workspace">
         <InspectionRail
           reports={history.data ?? []}
+          isLoading={history.isPending}
+          error={history.error ? errorMessage(history.error) : undefined}
           selectedId={selectedReportId}
           filter={filter}
           onFilter={setFilter}
           onSelect={(id) => void selectReport(id)}
           onNew={newInspection}
+          onRetry={() => void history.refetch()}
         />
         <div className="center-pane">
           {showLanding ? (
@@ -224,9 +222,20 @@ export function App() {
                 setStatusMessage('Sample input loaded. Review it, then explicitly run preflight.')
               }}
               onInspect={newInspection}
-              {...(verifiedReportId
-                ? { onViewVerified: () => void selectReport(verifiedReportId) }
-                : {})}
+              {...(freshVerifiedReportId
+                ? { onViewVerified: () => void selectReport(freshVerifiedReportId) }
+                : historicalPaidReportId
+                  ? { onViewHistorical: () => void selectReport(historicalPaidReportId) }
+                  : {})}
+              evidenceState={
+                history.isPending
+                  ? 'loading'
+                  : history.error
+                    ? 'unavailable'
+                    : historicalPaidReportId
+                      ? 'historical-only'
+                      : 'none'
+              }
             />
           ) : (
             <>
@@ -273,16 +282,7 @@ export function App() {
                 selectedId={selectedCheckId}
                 onSelect={setSelectedCheckId}
               />
-              <footer className="state-footer">
-                <span>
-                  {report
-                    ? `Snapshot block ${report.facts.snapshot.blockNumber}`
-                    : 'No chain state read yet'}
-                </span>
-                <span className="mono">
-                  {report?.facts.snapshot.stateNote ?? 'Evidence state will be disclosed here.'}
-                </span>
-              </footer>
+              <StateFooter report={report} />
             </>
           )}
         </div>

@@ -11,18 +11,24 @@ function short(value: string) {
 
 export function InspectionRail({
   reports,
+  isLoading = false,
+  error,
   selectedId,
   filter,
   onFilter,
   onSelect,
   onNew,
+  onRetry,
 }: {
   reports: ReportSummary[]
+  isLoading?: boolean
+  error?: string | undefined
   selectedId?: string | undefined
   filter: Filter
   onFilter: (filter: Filter) => void
   onSelect: (id: string) => void
   onNew: () => void
+  onRetry?: () => void
 }) {
   const visible = filter === 'ALL' ? reports : reports.filter((report) => report.verdict === filter)
   return (
@@ -53,10 +59,31 @@ export function InspectionRail({
         ))}
       </div>
       <div className="history-list">
-        {visible.length === 0 ? (
+        {isLoading && reports.length === 0 ? (
+          <div className="empty-rail" role="status">
+            <span>Loading inspections…</span>
+            <small>Reading persisted report history.</small>
+          </div>
+        ) : error && reports.length === 0 ? (
+          <div className="empty-rail rail-error" role="alert">
+            <span>History unavailable</span>
+            <small>{error}</small>
+            {onRetry && (
+              <button type="button" onClick={onRetry}>
+                Retry history
+              </button>
+            )}
+          </div>
+        ) : visible.length === 0 ? (
           <div className="empty-rail">
-            <span>No inspections yet</span>
-            <small>Run one to build a local evidence history.</small>
+            <span>
+              {reports.length === 0 ? 'No inspections yet' : `No ${filter.toLowerCase()} reports`}
+            </span>
+            <small>
+              {reports.length === 0
+                ? 'Run one to build a local evidence history.'
+                : 'Choose All to view every stored inspection.'}
+            </small>
           </div>
         ) : (
           visible.map((report) => (
@@ -84,6 +111,16 @@ export function InspectionRail({
           ))
         )}
       </div>
+      {error && reports.length > 0 && (
+        <div className="history-notice" role="alert">
+          <span>History refresh failed. Showing saved results.</span>
+          {onRetry && (
+            <button type="button" onClick={onRetry}>
+              Retry
+            </button>
+          )}
+        </div>
+      )}
       <footer className="rail-footer">
         <span>{reports.length} stored locally</span>
         <span className="mono">ruleset 1.0.0</span>

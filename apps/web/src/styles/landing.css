@@ -70,6 +70,10 @@
   background: var(--white);
 }
 
+.landing-historical {
+  border-color: var(--amber);
+}
+
 .landing-disclosure {
   max-width: 540px;
   margin-top: 14px;
@@ -77,6 +81,19 @@
   font-family: var(--mono);
   font-size: 8px;
   line-height: 1.55;
+}
+
+.landing-evidence-state {
+  max-width: 540px;
+  margin-top: 8px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 8px;
+  line-height: 1.55;
+}
+
+.landing-evidence-error {
+  color: var(--red);
 }
 
 .landing-workflow {

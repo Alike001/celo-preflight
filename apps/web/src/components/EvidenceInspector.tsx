@@ -1,8 +1,17 @@
-import { Check, Clipboard, Code2, ExternalLink, FileSignature, ReceiptText } from 'lucide-react'
+import {
+  Check,
+  Clipboard,
+  Clock3,
+  Code2,
+  ExternalLink,
+  FileSignature,
+  ReceiptText,
+} from 'lucide-react'
 import { useState } from 'react'
 import type { CheckEvidence, PreparedReport } from '@preflight/shared'
 import { StatusIcon } from './StatusIcon.js'
 import { ReportVerifierDialog } from './ReportVerifierDialog.js'
+import { isReportExpired } from '../report-freshness.js'
 
 function display(value: string | boolean | number | string[]) {
   return Array.isArray(value) ? value.join(', ') : String(value)
@@ -23,6 +32,7 @@ export function EvidenceInspector({
   const [copied, setCopied] = useState(false)
   const [showVerifier, setShowVerifier] = useState(false)
   const verdict = report?.verdict
+  const expired = report ? isReportExpired(report) : false
 
   async function copyReport() {
     if (!report) return
@@ -33,30 +43,44 @@ export function EvidenceInspector({
 
   return (
     <aside className="inspector" aria-label="Verdict and evidence">
-      <section className={`verdict-panel ${verdict ? `panel-${verdict.toLowerCase()}` : ''}`}>
+      <section
+        className={`verdict-panel ${verdict ? `panel-${verdict.toLowerCase()}` : ''} ${expired ? 'panel-expired' : ''}`}
+      >
         <span className="eyebrow">Verdict</span>
         <div className="verdict-line">
-          {verdict ? <StatusIcon status={verdict} /> : <span className="awaiting-dot" />}
+          {verdict ? (
+            expired ? (
+              <Clock3 className="verdict-freshness-icon" aria-hidden />
+            ) : (
+              <StatusIcon status={verdict} />
+            )
+          ) : (
+            <span className="awaiting-dot" />
+          )}
           <h2>
             {verdict
-              ? verdict === 'CLEAR'
-                ? 'CLEAR TO SIGN'
-                : verdict
+              ? expired
+                ? `HISTORICAL ${verdict} · EXPIRED`
+                : verdict === 'CLEAR'
+                  ? 'CLEAR TO SIGN'
+                  : verdict
               : landing
                 ? 'AWAITING LIVE EVIDENCE'
                 : 'AWAITING INPUT'}
           </h2>
         </div>
         <p>
-          {verdict === 'CLEAR'
-            ? 'Every applicable rule has sufficient passing evidence.'
-            : verdict === 'CAUTION'
-              ? 'No blocking failure, but one or more proofs are incomplete or ambiguous.'
-              : verdict === 'BLOCK'
-                ? 'At least one deterministic safety rule failed.'
-                : landing
-                  ? 'Run the live sample or inspect your own unsigned transaction. A verdict appears only after simulation.'
-                  : 'Paste an unsigned transaction to begin a live Celo inspection.'}
+          {expired
+            ? 'This signed snapshot is authentic but expired. Re-run a fresh inspection before signing anything.'
+            : verdict === 'CLEAR'
+              ? 'Every applicable rule has sufficient passing evidence.'
+              : verdict === 'CAUTION'
+                ? 'No blocking failure, but one or more proofs are incomplete or ambiguous.'
+                : verdict === 'BLOCK'
+                  ? 'At least one deterministic safety rule failed.'
+                  : landing
+                    ? 'Run the live sample or inspect your own unsigned transaction. A verdict appears only after simulation.'
+                    : 'Paste an unsigned transaction to begin a live Celo inspection.'}
         </p>
         <div className="verdict-actions">
           <button type="button" disabled={!report} onClick={copyReport}>

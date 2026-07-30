@@ -1,0 +1,29 @@
+.empty-rail button,
+.history-notice button {
+  margin-top: 10px;
+  padding: 5px 8px;
+  border: 1px solid var(--border-strong);
+  background: var(--white);
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.rail-error span {
+  color: var(--red);
+}
+
+.history-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border-strong);
+  color: var(--red);
+  font-size: 8px;
+}
+
+.history-notice button {
+  flex: 0 0 auto;
+  margin-top: 0;
+}

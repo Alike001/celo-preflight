@@ -1,9 +1,11 @@
-import { ArrowRight, EyeOff, FileCheck2, Play, Radio, ShieldCheck } from 'lucide-react'
+import { ArrowRight, Clock3, EyeOff, FileCheck2, Play, Radio, ShieldCheck } from 'lucide-react'
 
 interface LandingStateProps {
   onLoadSample: () => void
   onInspect: () => void
   onViewVerified?: () => void
+  onViewHistorical?: () => void
+  evidenceState?: 'loading' | 'unavailable' | 'historical-only' | 'none'
 }
 
 const workflow = [
@@ -30,7 +32,13 @@ const assurances = [
   },
 ] as const
 
-export function LandingState({ onLoadSample, onInspect, onViewVerified }: LandingStateProps) {
+export function LandingState({
+  onLoadSample,
+  onInspect,
+  onViewVerified,
+  onViewHistorical,
+  evidenceState = 'none',
+}: LandingStateProps) {
   return (
     <section className="landing-state" aria-labelledby="landing-heading">
       <div className="landing-intro">
@@ -48,14 +56,38 @@ export function LandingState({ onLoadSample, onInspect, onViewVerified }: Landin
           </button>
           {onViewVerified && (
             <button className="landing-proof" type="button" onClick={onViewVerified}>
-              <FileCheck2 aria-hidden /> View verified report
+              <FileCheck2 aria-hidden /> View current verified report
+            </button>
+          )}
+          {onViewHistorical && (
+            <button
+              className="landing-proof landing-historical"
+              type="button"
+              onClick={onViewHistorical}
+            >
+              <Clock3 aria-hidden /> View historical report
             </button>
           )}
         </div>
         <p className="landing-disclosure">
-          The sample supplies unsigned input only. View verified report opens existing evidence;
-          neither action connects a wallet or requests payment.
+          The sample supplies unsigned input only. Existing reports open without connecting a wallet
+          or requesting payment.
         </p>
+        {evidenceState === 'loading' && (
+          <p className="landing-evidence-state" role="status">
+            Checking persisted evidence…
+          </p>
+        )}
+        {evidenceState === 'unavailable' && (
+          <p className="landing-evidence-state landing-evidence-error" role="alert">
+            Stored evidence is temporarily unavailable. You can still inspect unsigned input.
+          </p>
+        )}
+        {evidenceState === 'historical-only' && (
+          <p className="landing-evidence-state" role="status">
+            Available paid evidence is historical only; it is never signing guidance.
+          </p>
+        )}
       </div>
 
       <div className="landing-workflow" aria-label="Preflight workflow">

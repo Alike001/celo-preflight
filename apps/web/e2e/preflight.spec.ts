@@ -7,7 +7,7 @@ const report: PreparedReport = {
   rulesetVersion: 'celo-preflight/1.0.0',
   verdict: 'CLEAR',
   createdAt: '2026-07-17T08:00:00.000Z',
-  expiresAt: '2026-07-17T08:10:00.000Z',
+  expiresAt: '2999-07-17T08:10:00.000Z',
   issuer: `0x${'9'.repeat(40)}`,
   facts: {
     transaction: {
@@ -70,6 +70,11 @@ const paidReport: PreparedReport = {
   },
 }
 
+const historicalPaidReport: PreparedReport = {
+  ...paidReport,
+  expiresAt: '2020-07-17T08:10:00.000Z',
+}
+
 async function mockApi(page: Page) {
   await page.route('**/api/**', async (route) => {
     const url = new URL(route.request().url())
@@ -110,6 +115,50 @@ async function mockApi(page: Page) {
     }
     if (url.pathname === '/api/preflight/prepare') {
       await json({ mode: 'local-free', claimRequired: false, prepared: report, report }, 201)
+      return
+    }
+    await json({ error: 'Not found.' }, 404)
+  })
+}
+
+async function mockHistoricalEvidenceApi(page: Page) {
+  await page.route('**/api/**', async (route) => {
+    const url = new URL(route.request().url())
+    const json = (body: unknown, status = 200) =>
+      route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) })
+    if (url.pathname === '/api/capabilities') {
+      await json({
+        localFree: true,
+        hostedPaid: false,
+        attribution: { configured: true, requiredCode: 'celo_preflight' },
+        payment: { network: 'eip155:42220', unavailableReason: 'Not configured for tests.' },
+      })
+      return
+    }
+    if (url.pathname === '/api/reports' && route.request().method() === 'GET') {
+      await json({
+        reports: [
+          {
+            id: historicalPaidReport.id,
+            requestHash: historicalPaidReport.requestHash,
+            rulesetVersion: historicalPaidReport.rulesetVersion,
+            verdict: historicalPaidReport.verdict,
+            createdAt: historicalPaidReport.createdAt,
+            expiresAt: historicalPaidReport.expiresAt,
+            issuer: historicalPaidReport.issuer,
+            chainId: historicalPaidReport.facts.transaction.chainId,
+            to: historicalPaidReport.facts.transaction.to,
+            paid: true,
+          },
+        ],
+      })
+      return
+    }
+    if (
+      url.pathname === `/api/reports/${historicalPaidReport.id}` &&
+      route.request().method() === 'GET'
+    ) {
+      await json({ report: historicalPaidReport })
       return
     }
     await json({ error: 'Not found.' }, 404)
@@ -158,6 +207,18 @@ test('opens an existing paid report without a wallet or payment', async ({ page 
   await expect(page.getByRole('heading', { name: 'CLEAR TO SIGN' })).toBeVisible()
   await expect(page.getByText('Snapshot block 72370000')).toBeVisible()
   await expect(page.getByText(paidReport.payment!.transactionHash)).toBeVisible()
+})
+
+test('never presents expired paid evidence as sign-ready', async ({ page }) => {
+  await mockHistoricalEvidenceApi(page)
+  await page.goto('/')
+
+  await expect(page.getByRole('button', { name: 'View historical report' })).toBeVisible()
+  await expect(page.getByText(/historical only; it is never signing guidance/i)).toBeVisible()
+  await page.getByRole('button', { name: 'View historical report' }).click()
+
+  await expect(page.getByRole('heading', { name: 'HISTORICAL CLEAR · EXPIRED' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'CLEAR TO SIGN' })).toBeHidden()
 })
 
 test('opens real product documentation from the application bar', async ({ page }) => {

@@ -4,6 +4,7 @@ import type { PreparedReport, TransactionDraft } from '@preflight/shared'
 import { ChecksTable } from './ChecksTable.js'
 import { DocsDialog } from './DocsDialog.js'
 import { EvidenceInspector } from './EvidenceInspector.js'
+import { InspectionRail } from './InspectionRail.js'
 import { LandingState } from './LandingState.js'
 import { TransactionForm } from './TransactionForm.js'
 
@@ -21,7 +22,7 @@ const report: PreparedReport = {
   rulesetVersion: 'celo-preflight/1.0.0',
   verdict: 'BLOCK',
   createdAt: '2026-07-17T00:00:00.000Z',
-  expiresAt: '2026-07-17T00:10:00.000Z',
+  expiresAt: '2999-07-17T00:10:00.000Z',
   issuer: '0x9999999999999999999999999999999999999999',
   facts: {
     transaction,
@@ -41,6 +42,12 @@ const report: PreparedReport = {
   ],
 }
 
+const currentClearReport: PreparedReport = {
+  ...report,
+  verdict: 'CLEAR',
+  expiresAt: '2999-01-01T00:00:00.000Z',
+}
+
 describe('Flight Deck controls', () => {
   it('makes the real sample and manual inspection paths explicit', () => {
     const onLoadSample = vi.fn()
@@ -56,16 +63,59 @@ describe('Flight Deck controls', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Load live sample' }))
     fireEvent.click(screen.getByRole('button', { name: 'Inspect your transaction' }))
-    fireEvent.click(screen.getByRole('button', { name: 'View verified report' }))
+    fireEvent.click(screen.getByRole('button', { name: 'View current verified report' }))
     expect(onLoadSample).toHaveBeenCalledOnce()
     expect(onInspect).toHaveBeenCalledOnce()
     expect(onViewVerified).toHaveBeenCalledOnce()
-    expect(screen.getByText(/neither action connects a wallet or requests payment/i)).toBeTruthy()
+    expect(
+      screen.getByText(/existing reports open without connecting a wallet or requesting payment/i),
+    ).toBeTruthy()
   })
 
   it('does not promise a verified report when none exists', () => {
     const emptyLanding = render(<LandingState onLoadSample={vi.fn()} onInspect={vi.fn()} />)
     expect(emptyLanding.container.querySelector('.landing-proof')).toBeNull()
+  })
+
+  it('labels historical paid evidence as expired rather than sign-ready', () => {
+    render(
+      <EvidenceInspector
+        report={{ ...currentClearReport, expiresAt: '2020-01-01T00:00:00.000Z' }}
+      />,
+    )
+    expect(screen.getByRole('heading', { name: 'HISTORICAL CLEAR · EXPIRED' })).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: 'CLEAR TO SIGN' })).toBeNull()
+    expect(screen.getByText(/re-run a fresh inspection before signing anything/i)).toBeTruthy()
+  })
+
+  it('distinguishes loading and failed history from an empty workspace', () => {
+    const onRetry = vi.fn()
+    const { rerender } = render(
+      <InspectionRail
+        reports={[]}
+        isLoading
+        filter="ALL"
+        onFilter={vi.fn()}
+        onSelect={vi.fn()}
+        onNew={vi.fn()}
+        onRetry={onRetry}
+      />,
+    )
+    expect(screen.getByText('Loading inspections…')).toBeTruthy()
+    rerender(
+      <InspectionRail
+        reports={[]}
+        error="Network unavailable"
+        filter="ALL"
+        onFilter={vi.fn()}
+        onSelect={vi.fn()}
+        onNew={vi.fn()}
+        onRetry={onRetry}
+      />,
+    )
+    expect(screen.getByText('History unavailable')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Retry history' }))
+    expect(onRetry).toHaveBeenCalledOnce()
   })
 
   it('does not imply evidence exists before an inspection runs', () => {
