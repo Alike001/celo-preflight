@@ -135,6 +135,10 @@ export function EvidenceInspector({
               <dt>Amount</dt>
               <dd className="mono">{report.payment.amount}</dd>
             </div>
+            <div>
+              <dt>Issuer receipt binding</dt>
+              <dd>{report.paymentSignature ? 'Signed separately' : 'Legacy receipt: unbound'}</dd>
+            </div>
           </dl>
         ) : (
           <div className="no-receipt">

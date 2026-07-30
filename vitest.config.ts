@@ -19,6 +19,13 @@ export default defineConfig({
     projects: [
       {
         test: {
+          name: 'shared',
+          include: ['packages/shared/src/**/*.test.ts'],
+          environment: 'node',
+        },
+      },
+      {
+        test: {
           name: 'engine',
           include: ['packages/preflight-engine/src/**/*.test.ts'],
           environment: 'node',

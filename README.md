@@ -53,7 +53,7 @@ This repository deploys as one Railway service: its Express process serves both 
 
 ## Report integrity
 
-Every report includes its normalized request hash, chain and snapshot state, ruleset version, individual checks, issuer, expiry, and ECDSA signature. In local development an unfunded report-signing key is generated under `.data/`; production should inject a dedicated `REPORT_SIGNER_PRIVATE_KEY` and use a persistent `DATA_DIR`.
+Every report includes its normalized request hash, chain and snapshot state, ruleset version, individual checks, issuer, expiry, and ECDSA signature. When an x402 receipt is later attached, the issuer produces a separate signature over that exact receipt and the original report signature; the browser verifier checks both. Older receipts without this separate binding are explicitly shown as legacy/unbound. In local development an unfunded report-signing key is generated under `.data/`; production should inject a dedicated `REPORT_SIGNER_PRIVATE_KEY` and use a persistent `DATA_DIR`.
 
 The report inspector includes a browser-only **Verify signature** tool that recomputes a report hash and recovers the signing address without calling the Preflight server. Wallets and agents can submit the same unsigned proposal shape through the [live OpenAPI contract](https://celo-preflight-production.up.railway.app/api/openapi.json); the API only simulates and reports—it never broadcasts the proposal.
 

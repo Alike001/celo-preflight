@@ -14,11 +14,11 @@ import {
   type RecoveryClient,
 } from './payment-recovery.js'
 import { usdcExactPrice } from './payment-pricing.js'
-import { paymentRejectionReason } from './payment-diagnostics.js'
+import { paymentRejectionReason, settlementFailureDetails } from './payment-diagnostics.js'
 
 export { reconcileEip3009Settlement, recoverHistoricCeloClaim } from './payment-recovery.js'
 export { usdcExactPrice } from './payment-pricing.js'
-export { paymentRejectionReason } from './payment-diagnostics.js'
+export { paymentRejectionReason, settlementFailureDetails } from './payment-diagnostics.js'
 
 export interface PaymentCapability {
   enabled: boolean
@@ -32,6 +32,11 @@ export interface PaymentCapability {
     transactionHash: Hex,
   ) => Promise<PreparedReport | undefined>
 }
+
+export type ReceiptAttester = (
+  reportId: string,
+  receipt: PaymentReceipt,
+) => Promise<PreparedReport | undefined>
 
 function timeout<T>(promise: Promise<T>, milliseconds: number): Promise<T> {
   return Promise.race([
@@ -79,17 +84,6 @@ function reportIdFromTransport(transportContext: unknown): string | undefined {
   }
 }
 
-function settlementFailureDetails(error: unknown) {
-  const value = error && typeof error === 'object' ? (error as Record<string, unknown>) : undefined
-  return {
-    name: error instanceof Error ? error.name : 'Unknown error',
-    message: error instanceof Error ? error.message : 'Unknown error',
-    ...(typeof value?.status === 'number' ? { status: value.status } : {}),
-    ...(typeof value?.statusCode === 'number' ? { statusCode: value.statusCode } : {}),
-    ...(typeof value?.code === 'string' ? { code: value.code } : {}),
-  }
-}
-
 function unsuccessfulSettlementDetails(result: {
   errorReason?: string
   errorMessage?: string
@@ -102,19 +96,20 @@ function unsuccessfulSettlementDetails(result: {
   }
 }
 
-function attachReceipt(
-  reports: ReportRepository,
+async function attachReceipt(
+  attestReceipt: ReceiptAttester,
   reportId: string | undefined,
   receipt: PaymentReceipt,
 ) {
   if (!reportId) return undefined
-  return reports.attachPayment(reportId, receipt)
+  return attestReceipt(reportId, receipt)
 }
 
 export async function createPaymentCapability(
   config: ApiConfig['payment'],
   reports: ReportRepository,
   celoRpcUrl: string,
+  attestReceipt: ReceiptAttester,
 ): Promise<PaymentCapability> {
   if (!config) {
     return { enabled: false, network: NETWORK, reason: 'Hosted payment is not configured.' }
@@ -185,7 +180,11 @@ export async function createPaymentCapability(
         asset: requirements.asset as Address,
         settledAt: new Date().toISOString(),
       }
-      const report = attachReceipt(reports, reportIdFromTransport(transportContext), receipt)
+      const report = await attachReceipt(
+        attestReceipt,
+        reportIdFromTransport(transportContext),
+        receipt,
+      )
       if (!report) return
       console.warn('x402 settlement recovered from Celo chain state.', {
         transactionHash: recovered.transactionHash,
@@ -225,7 +224,7 @@ export async function createPaymentCapability(
         asset: requirements.asset as Address,
         settledAt: new Date().toISOString(),
       }
-      attachReceipt(reports, reportId, receipt)
+      await attachReceipt(attestReceipt, reportId, receipt)
     } catch (error) {
       console.error('Payment settled but receipt persistence failed.', error)
     }
@@ -236,13 +235,15 @@ export async function createPaymentCapability(
     network: NETWORK,
     price: config.price,
     payTo: config.payTo,
-    recoverHistoricClaim: (reportId, transactionHash) =>
-      recoverHistoricCeloClaim(celoClient, reports, {
+    recoverHistoricClaim: async (reportId, transactionHash) => {
+      const recovered = await recoverHistoricCeloClaim(celoClient, reports, {
         reportId,
         transactionHash,
         payTo: config.payTo,
         amount: usdcExactPrice(config.price).amount,
-      }),
+      })
+      return recovered?.payment ? attestReceipt(reportId, recovered.payment) : recovered
+    },
     middleware: withPaymentDiagnostics(
       paymentMiddleware(
         {

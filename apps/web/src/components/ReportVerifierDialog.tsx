@@ -104,6 +104,12 @@ export function ReportVerifierDialog({
               {result.recoveredIssuer && (
                 <span className="mono">Recovered: {result.recoveredIssuer}</span>
               )}
+              {result.receiptIntegrityValid !== undefined && (
+                <span>
+                  Settlement receipt:{' '}
+                  {result.receiptIntegrityValid ? 'issuer-bound' : 'not verified'}
+                </span>
+              )}
               {result.reasons.length > 0 && (
                 <ul>
                   {result.reasons.map((reason) => (

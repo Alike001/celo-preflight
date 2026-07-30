@@ -2,7 +2,11 @@ import { privateKeyToAccount } from 'viem/accounts'
 import { describe, expect, it } from 'vitest'
 import type { PreparedReport } from './types.js'
 import { contentHash } from './canonical.js'
-import { reportSigningHash, verifyPreparedReport } from './report-verification.js'
+import {
+  paymentReceiptSigningHash,
+  reportSigningHash,
+  verifyPreparedReport,
+} from './report-verification.js'
 
 const account = privateKeyToAccount(`0x${'1'.repeat(64)}`)
 const address = (digit: string) => `0x${digit.repeat(40)}` as const
@@ -57,7 +61,7 @@ describe('independent report verification', () => {
     expect(verification.integrityValid).toBe(false)
   })
 
-  it('keeps a real settlement receipt outside the signed inspection payload', async () => {
+  it('marks a legacy settlement receipt as unbound instead of pretending it is signed', async () => {
     const report = await signedReport()
     report.payment = {
       network: 'eip155:42220',
@@ -67,6 +71,28 @@ describe('independent report verification', () => {
       asset: address('4'),
       settledAt: '2026-07-17T08:01:00.000Z',
     }
-    expect((await verifyPreparedReport(report)).integrityValid).toBe(true)
+    expect(await verifyPreparedReport(report)).toMatchObject({
+      integrityValid: true,
+      receiptIntegrityValid: false,
+    })
+  })
+
+  it('verifies an independently signed settlement receipt and detects alteration', async () => {
+    const report = await signedReport()
+    report.payment = {
+      network: 'eip155:42220',
+      transactionHash: `0x${'b'.repeat(64)}`,
+      payTo: address('3'),
+      amount: '10000',
+      asset: address('4'),
+      settledAt: '2026-07-17T08:01:00.000Z',
+    }
+    report.paymentSignature = await account.signMessage({
+      message: { raw: paymentReceiptSigningHash(report)! },
+    })
+    expect(await verifyPreparedReport(report)).toMatchObject({ receiptIntegrityValid: true })
+    expect(
+      await verifyPreparedReport({ ...report, payment: { ...report.payment, amount: '9999' } }),
+    ).toMatchObject({ receiptIntegrityValid: false })
   })
 })

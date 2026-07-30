@@ -85,6 +85,8 @@ export interface PreparedReport {
   checks: CheckEvidence[]
   signature?: Hex
   payment?: PaymentReceipt
+  /** Separate issuer attestation over a receipt added after inspection signing. */
+  paymentSignature?: Hex
 }
 
 export interface PaymentReceipt {

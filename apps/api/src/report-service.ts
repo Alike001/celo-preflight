@@ -1,6 +1,8 @@
 import {
   contentHash,
+  paymentReceiptSigningHash,
   reportSigningHash,
+  type PaymentReceipt,
   type PrepareResponse,
   type PreparedReport,
   type TransactionDraft,
@@ -63,5 +65,20 @@ export class ReportService {
     return mode === 'local-free'
       ? { mode, claimRequired: false, prepared, report }
       : { mode, claimRequired: true, prepared }
+  }
+
+  async attachPaymentReceipt(
+    reportId: string,
+    receipt: PaymentReceipt,
+  ): Promise<PreparedReport | undefined> {
+    const report = this.reports.get(reportId)
+    if (!report) return undefined
+    const withReceipt: PreparedReport = { ...report, payment: receipt }
+    const paymentHash = paymentReceiptSigningHash(withReceipt)
+    if (!paymentHash) return undefined
+    const paymentSignature = await this.signer.sign(paymentHash)
+    const updated: PreparedReport = { ...withReceipt, paymentSignature }
+    this.reports.save(updated)
+    return updated
   }
 }

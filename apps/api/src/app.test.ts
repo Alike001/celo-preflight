@@ -170,6 +170,7 @@ describe('Celo hosted facilitator credentials', () => {
       },
       new MemoryReports(),
       'http://unused',
+      async () => undefined,
     )
     expect(capability).toMatchObject({
       enabled: false,
