@@ -15,6 +15,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "pnpm --filter @preflight/web test:e2e",
+    "test:deployed": "node scripts/smoke-deployed.mjs",
     "build": "pnpm -r build",
     "files:check": "node scripts/check-file-size.mjs",
     "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm files:check"
