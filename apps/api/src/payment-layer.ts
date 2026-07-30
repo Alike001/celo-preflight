@@ -138,6 +138,18 @@ function settlementFailureDetails(error: unknown) {
   }
 }
 
+function unsuccessfulSettlementDetails(result: {
+  errorReason?: string
+  errorMessage?: string
+  network: string
+}) {
+  return {
+    network: result.network,
+    reason: result.errorReason ?? 'none',
+    message: result.errorMessage ?? 'none',
+  }
+}
+
 export async function createPaymentCapability(
   config: ApiConfig['payment'],
   reports: ReportRepository,
@@ -175,8 +187,12 @@ export async function createPaymentCapability(
   })
   resourceServer.onAfterSettle(async ({ result, requirements, transportContext }) => {
     try {
+      if (!result.success) {
+        console.error('x402 facilitator settlement was declined.', unsuccessfulSettlementDetails(result))
+        return
+      }
       const reportId = reportIdFromTransport(transportContext)
-      if (!reportId || !result.success || !/^0x[0-9a-fA-F]{64}$/.test(result.transaction)) return
+      if (!reportId || !/^0x[0-9a-fA-F]{64}$/.test(result.transaction)) return
       const receipt: PaymentReceipt = {
         network: result.network,
         transactionHash: result.transaction as Hex,
