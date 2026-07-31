@@ -247,6 +247,12 @@ describe('hosted report access and claim preconditions', () => {
     app = runtime.app
     const prepared = await request(app).post('/api/preflight/prepare').send(facts.transaction)
     reportId = prepared.body.prepared.id as string
+    expect(prepared.body).toMatchObject({
+      mode: 'hosted-paid',
+      claimRequired: true,
+      preview: { facts: { snapshot: { blockNumber: '123' } }, checks: expect.any(Array) },
+    })
+    expect(prepared.body.preview).not.toHaveProperty('signature')
   })
 
   it('keeps a hosted report private before an x402 claim', async () => {

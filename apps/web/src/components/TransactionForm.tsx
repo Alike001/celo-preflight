@@ -15,6 +15,7 @@ import type { Capabilities } from '../api.js'
 export type FormStatus =
   | 'idle'
   | 'preparing'
+  | 'awaiting-claim'
   | 'awaiting-wallet'
   | 'signing-payment'
   | 'complete'
@@ -27,6 +28,8 @@ export interface TransactionFormProps {
   message?: string | undefined
   onChange: (value: TransactionDraft) => void
   onSubmit: () => void
+  onClaim?: (() => void) | undefined
+  claimPrice?: string | undefined
   onSample: () => void
   onReset: () => void
   connectedAddress?: `0x${string}` | undefined
@@ -54,6 +57,8 @@ export const TransactionForm = forwardRef<HTMLInputElement, TransactionFormProps
       message,
       onChange,
       onSubmit,
+      onClaim,
+      claimPrice,
       onSample,
       onReset,
       connectedAddress,
@@ -68,9 +73,7 @@ export const TransactionForm = forwardRef<HTMLInputElement, TransactionFormProps
     const [importError, setImportError] = useState<string>()
     const busy = ['preparing', 'signing-payment'].includes(status)
     const paid = capabilities?.hostedPaid === true
-    const action = paid
-      ? `Run preflight · ${capabilities.payment.price ?? 'x402 price'}`
-      : 'Run local preflight'
+    const action = paid ? 'Run preflight' : 'Run local preflight'
 
     return (
       <section className="transaction-section" aria-labelledby="transaction-heading">
@@ -236,9 +239,16 @@ export const TransactionForm = forwardRef<HTMLInputElement, TransactionFormProps
                   : action}
               <kbd>⌘↵</kbd>
             </button>
+            {onClaim && claimPrice && (
+              <button className="claim-button" type="button" disabled={busy} onClick={onClaim}>
+                Claim signed report · {claimPrice}
+              </button>
+            )}
             <p>
               {paid
-                ? 'The report is computed first. Payment is requested only to claim a successful report.'
+                ? onClaim
+                  ? 'This preview is unsigned. Claim only if you need the portable signed report and settlement receipt.'
+                  : 'Simulation is free. Payment is requested only after you choose to claim a signed report.'
                 : 'Local-free mode · real rules and RPC evidence · no settlement receipt.'}
             </p>
           </div>

@@ -47,7 +47,7 @@ x402 payment, or broadcasts a transaction.
 
 ## Hosted x402 mode
 
-Hosted paid claims remain disabled unless the Celo facilitator URL, API key, seller address, and price in [`apps/api/.env.example`](apps/api/.env.example) are configured **and** the facilitator advertises x402 v2 `exact` settlement on `eip155:42220`. Create the API key at [x402.celo.org](https://x402.celo.org) by signing a message with the seller wallet; this is not a transaction and includes initial settlement credits. Add it to Railway only as `X402_FACILITATOR_API_KEY`—never to Git or the browser. A report is computed before payment, so invalid input or an unavailable RPC cannot charge the user. A successful claim stores only the real facilitator settlement receipt.
+Hosted paid claims remain disabled unless the Celo facilitator URL, API key, seller address, and price in [`apps/api/.env.example`](apps/api/.env.example) are configured **and** the facilitator advertises x402 v2 `exact` settlement on `eip155:42220`. Create the API key at [x402.celo.org](https://x402.celo.org) by signing a message with the seller wallet; this is not a transaction and includes initial settlement credits. Add it to Railway only as `X402_FACILITATOR_API_KEY`—never to Git or the browser. Hosted preparation returns a real but unsigned evidence preview before payment, so invalid input or an unavailable RPC cannot charge the user; only an explicit claim asks the wallet to pay and returns a signed report with the real facilitator settlement receipt.
 
 ## Agent integration and public proof
 

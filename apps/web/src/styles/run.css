@@ -23,6 +23,21 @@
   width: 16px;
 }
 
+.claim-button {
+  min-height: 39px;
+  padding: 0 11px;
+  border: 1px solid var(--ink);
+  border-radius: 3px;
+  background: var(--white);
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.claim-button:hover:not(:disabled) {
+  background: var(--canvas);
+}
+
 .run-button kbd {
   margin-left: auto;
   font-size: 9px;

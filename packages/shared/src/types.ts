@@ -106,5 +106,7 @@ export interface PrepareResponse {
     PreparedReport,
     'id' | 'requestHash' | 'rulesetVersion' | 'verdict' | 'createdAt' | 'expiresAt' | 'issuer'
   >
+  /** Evidence preview for a hosted report; it intentionally has no signature or receipt. */
+  preview?: Pick<PreparedReport, 'facts' | 'checks'>
   report?: PreparedReport
 }

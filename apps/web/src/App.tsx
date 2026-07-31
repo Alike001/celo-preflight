@@ -4,27 +4,20 @@ import { useAccount, usePublicClient, useSwitchChain } from 'wagmi'
 import { getWalletClient } from 'wagmi/actions'
 import type { PublicClient, WalletClient } from 'viem'
 import type { PreparedReport, TransactionDraft, Verdict } from '@preflight/shared'
-import {
-  getCapabilities,
-  getHistory,
-  getLiveMentoProposal,
-  getReport,
-  prepareReport,
-  replayReport,
-} from './api.js'
+import { getCapabilities, getHistory, getReport, prepareReport } from './api.js'
 import { createSampleTransaction } from './sample.js'
 import { isReportExpired } from './report-freshness.js'
+import { useMentoProposal } from './useMentoProposal.js'
+import { useNewInspectionShortcut } from './useNewInspectionShortcut.js'
+import { useReportReplay } from './useReportReplay.js'
 import { emptyTransaction, errorMessage } from './app-utils.js'
 import { wagmiConfig } from './wagmi.js'
-import { ChecksTable } from './components/ChecksTable.js'
+import { CenterPane } from './components/CenterPane.js'
 import { DocsDialog } from './components/DocsDialog.js'
 import { EvidenceInspector } from './components/EvidenceInspector.js'
-import { ExecutionPath } from './components/ExecutionPath.js'
 import { InspectionRail } from './components/InspectionRail.js'
-import { LandingState } from './components/LandingState.js'
-import { StateFooter } from './components/StateFooter.js'
 import { TopBar } from './components/TopBar.js'
-import { TransactionForm, type FormStatus } from './components/TransactionForm.js'
+import type { FormStatus } from './components/TransactionForm.js'
 export function App() {
   const queryClient = useQueryClient()
   const capabilities = useQuery({ queryKey: ['capabilities'], queryFn: getCapabilities })
@@ -39,6 +32,7 @@ export function App() {
   const [showLanding, setShowLanding] = useState(true)
   const [showDocs, setShowDocs] = useState(false)
   const [pendingMentoSwap, setPendingMentoSwap] = useState<TransactionDraft>()
+  const [pendingClaimId, setPendingClaimId] = useState<string>()
   const fromRef = useRef<HTMLInputElement>(null)
   const shouldFocusForm = useRef(false)
   const account = useAccount()
@@ -52,6 +46,7 @@ export function App() {
       setReport(undefined)
       setSelectedReportId(undefined)
       setSelectedCheckId(undefined)
+      setPendingClaimId(undefined)
       setStatus('idle')
       setStatusMessage(undefined)
     })
@@ -62,17 +57,7 @@ export function App() {
       shouldFocusForm.current = false
     }
   }, [showLanding])
-  useEffect(() => {
-    function keyboardShortcut(event: KeyboardEvent) {
-      const target = event.target as HTMLElement | null
-      if (event.key.toLowerCase() === 'n' && !target?.matches('input, textarea, select')) {
-        event.preventDefault()
-        newInspection()
-      }
-    }
-    window.addEventListener('keydown', keyboardShortcut)
-    return () => window.removeEventListener('keydown', keyboardShortcut)
-  })
+  useNewInspectionShortcut(newInspection)
 
   async function runPreflight(draft: TransactionDraft = transaction) {
     setShowLanding(false)
@@ -80,38 +65,68 @@ export function App() {
     setStatusMessage('Reading a Celo snapshot and running deterministic rules…')
     try {
       const prepared = await prepareReport(draft)
-      let nextReport = prepared.report
       if (prepared.claimRequired) {
-        if (!account.isConnected || !account.address || !publicClient) {
-          setStatus('awaiting-wallet')
-          setStatusMessage(
-            `Report prepared as ${prepared.prepared.verdict}. Connect a wallet to claim it via ${capabilities.data?.payment.price ?? 'x402'}.`,
-          )
-          return
-        }
-        if (account.chainId !== 42220) await switchChainAsync({ chainId: 42220 })
-        const walletClient = await getWalletClient(wagmiConfig, {
-          account: account.address,
-          chainId: 42220,
-        })
-        setStatus('signing-payment')
+        if (!prepared.preview) throw new Error('The API did not return an inspection preview.')
+        const preview: PreparedReport = { ...prepared.prepared, ...prepared.preview }
+        setReport(preview)
+        setPendingClaimId(prepared.prepared.id)
+        setSelectedReportId(prepared.prepared.id)
+        setSelectedCheckId(preview.checks[0]?.id)
+        setStatus('awaiting-claim')
         setStatusMessage(
-          'Authorize the exact x402 payment in your wallet. No transaction is sent by Preflight.',
+          `${preview.verdict} preview at Celo block ${preview.facts.snapshot.blockNumber}. Review the evidence, then explicitly claim the signed report only if you need it.`,
         )
-        const { claimReportWithX402 } = await import('./payments.js')
-        nextReport = await claimReportWithX402(
-          prepared.prepared.id,
-          walletClient as unknown as WalletClient,
-          publicClient as unknown as PublicClient,
-        )
+        return
       }
+      const nextReport = prepared.report
       if (!nextReport) throw new Error('The API returned no report.')
       setReport(nextReport)
+      setPendingClaimId(undefined)
       setSelectedReportId(nextReport.id)
       setSelectedCheckId(nextReport.checks[0]?.id)
       setStatus('complete')
       setStatusMessage(
         `${nextReport.verdict} at Celo block ${nextReport.facts.snapshot.blockNumber}. Select any check to verify why.`,
+      )
+      await queryClient.invalidateQueries({ queryKey: ['history'] })
+    } catch (error) {
+      setStatus('error')
+      setStatusMessage(errorMessage(error))
+    }
+  }
+
+  async function claimSignedReport() {
+    if (!pendingClaimId) return
+    if (!account.isConnected || !account.address || !publicClient) {
+      setStatus('awaiting-wallet')
+      setStatusMessage(
+        'Connect a Celo wallet from the top bar, then explicitly claim this signed report.',
+      )
+      return
+    }
+    setStatus('signing-payment')
+    setStatusMessage(
+      'Authorize the exact x402 payment in your wallet. No transaction is sent by Preflight.',
+    )
+    try {
+      if (account.chainId !== 42220) await switchChainAsync({ chainId: 42220 })
+      const walletClient = await getWalletClient(wagmiConfig, {
+        account: account.address,
+        chainId: 42220,
+      })
+      const { claimReportWithX402 } = await import('./payments.js')
+      const claimed = await claimReportWithX402(
+        pendingClaimId,
+        walletClient as unknown as WalletClient,
+        publicClient as unknown as PublicClient,
+      )
+      setReport(claimed)
+      setPendingClaimId(undefined)
+      setSelectedReportId(claimed.id)
+      setSelectedCheckId(claimed.checks[0]?.id)
+      setStatus('complete')
+      setStatusMessage(
+        `${claimed.verdict} at Celo block ${claimed.facts.snapshot.blockNumber}. Signed report and settlement receipt claimed.`,
       )
       await queryClient.invalidateQueries({ queryKey: ['history'] })
     } catch (error) {
@@ -128,6 +143,7 @@ export function App() {
     try {
       const selected = await getReport(id)
       setReport(selected)
+      setPendingClaimId(undefined)
       setSelectedCheckId(selected.checks[0]?.id)
       setStatus('complete')
       setStatusMessage(
@@ -141,51 +157,21 @@ export function App() {
     }
   }
 
-  async function replaySnapshot() {
-    if (!report) return
-    setStatus('preparing')
-    setStatusMessage(`Re-running at recorded Celo block ${report.facts.snapshot.blockNumber}…`)
-    try {
-      const replay = await replayReport(report.id)
-      const replayed: PreparedReport = {
-        ...report,
-        facts: replay.facts,
-        verdict: replay.verdict,
-        checks: replay.checks,
-      }
-      setReport(replayed)
-      setSelectedCheckId(replayed.checks[0]?.id)
-      setStatus('complete')
-      setStatusMessage(
-        `Re-run completed at original Celo block ${replayed.facts.snapshot.blockNumber}.`,
-      )
-    } catch (error) {
-      setStatus('error')
-      setStatusMessage(errorMessage(error))
-    }
-  }
+  const replaySnapshot = useReportReplay({
+    report,
+    setReport,
+    setSelectedCheckId,
+    setStatus,
+    setMessage: setStatusMessage,
+  })
+  const buildMentoProposal = useMentoProposal({
+    address: account.address,
+    setPendingSwap: setPendingMentoSwap,
+    setTransaction,
+    setStatus,
+    setMessage: setStatusMessage,
+  })
 
-  async function buildMentoProposal() {
-    if (!account.address) return
-    setStatus('preparing')
-    setStatusMessage('Building a fresh USDm → KESm Mento route from current Celo state…')
-    try {
-      const proposal = await getLiveMentoProposal(account.address)
-      setPendingMentoSwap(proposal.transaction)
-      setTransaction(proposal.approval ?? proposal.transaction)
-      setStatus('idle')
-      setStatusMessage(
-        proposal.approval
-          ? `Step 1 of 2 loaded: inspect the bounded USDm approval first. After it is confirmed externally, build a fresh route before using the swap draft.`
-          : `Live Mento swap loaded: ${proposal.quote.hops} hop, ${proposal.quote.tradable ? 'tradable' : 'not tradable'}.`,
-      )
-    } catch (error) {
-      setStatus('error')
-      setStatusMessage(errorMessage(error))
-    }
-  }
-
-  const selectedCheck = report?.checks.find((check) => check.id === selectedCheckId)
   const capabilityMessage = capabilities.error ? errorMessage(capabilities.error) : undefined
   const freshVerifiedReportId = history.data?.find(
     (candidate) => candidate.paid && !isReportExpired(candidate),
@@ -196,7 +182,14 @@ export function App() {
     <div className="app-shell">
       <TopBar
         chainId={transaction.chainId}
-        onChainChange={(chainId) => setTransaction({ ...transaction, chainId })}
+        onChainChange={(chainId) => {
+          setTransaction({ ...transaction, chainId })
+          setReport(undefined)
+          setSelectedCheckId(undefined)
+          setPendingClaimId(undefined)
+          setStatus('idle')
+          setStatusMessage('Network changed. Run a fresh inspection before claiming a report.')
+        }}
         onOpenDocs={() => setShowDocs(true)}
       />
       <main className="workspace">
@@ -211,86 +204,91 @@ export function App() {
           onNew={newInspection}
           onRetry={() => void history.refetch()}
         />
-        <div className="center-pane">
-          {showLanding ? (
-            <LandingState
-              onLoadSample={() => {
-                const sample = createSampleTransaction(capabilities.data?.attribution.requiredCode)
-                setTransaction(sample)
-                setShowLanding(false)
-                setStatus('idle')
-                setStatusMessage('Sample input loaded. Review it, then explicitly run preflight.')
-              }}
-              onInspect={newInspection}
-              {...(freshVerifiedReportId
-                ? { onViewVerified: () => void selectReport(freshVerifiedReportId) }
-                : historicalPaidReportId
-                  ? { onViewHistorical: () => void selectReport(historicalPaidReportId) }
-                  : {})}
-              evidenceState={
-                history.isPending
-                  ? 'loading'
-                  : history.error
-                    ? 'unavailable'
-                    : historicalPaidReportId
-                      ? 'historical-only'
-                      : 'none'
-              }
-            />
-          ) : (
-            <>
-              <TransactionForm
-                ref={fromRef}
-                value={transaction}
-                capabilities={capabilities.data}
-                status={status}
-                message={statusMessage ?? capabilityMessage}
-                onChange={setTransaction}
-                onSubmit={() => void runPreflight()}
-                onSample={() => {
-                  setTransaction(
-                    createSampleTransaction(capabilities.data?.attribution.requiredCode),
-                  )
+        <CenterPane
+          showLanding={showLanding}
+          transaction={transaction}
+          capabilities={capabilities.data}
+          status={status}
+          message={statusMessage ?? capabilityMessage}
+          report={report}
+          selectedCheckId={selectedCheckId}
+          pendingClaimId={pendingClaimId}
+          pendingMentoSwap={pendingMentoSwap}
+          connectedAddress={account.address}
+          formRef={fromRef}
+          landingEvidenceState={
+            history.isPending
+              ? 'loading'
+              : history.error
+                ? 'unavailable'
+                : historicalPaidReportId && !freshVerifiedReportId
+                  ? 'historical-only'
+                  : 'none'
+          }
+          onLoadSample={() => {
+            setTransaction(createSampleTransaction(capabilities.data?.attribution.requiredCode))
+            setShowLanding(false)
+            setStatus('idle')
+            setStatusMessage('Sample input loaded. Review it, then explicitly run preflight.')
+          }}
+          onInspect={newInspection}
+          {...(freshVerifiedReportId
+            ? { onViewVerified: () => void selectReport(freshVerifiedReportId) }
+            : historicalPaidReportId
+              ? { onViewHistorical: () => void selectReport(historicalPaidReportId) }
+              : {})}
+          onChange={(next) => {
+            setTransaction(next)
+            if (pendingClaimId) {
+              setReport(undefined)
+              setPendingClaimId(undefined)
+              setSelectedCheckId(undefined)
+              setStatus('idle')
+              setStatusMessage('Input changed. Run a fresh inspection before claiming a report.')
+            }
+          }}
+          onSubmit={() => void runPreflight()}
+          onClaim={() => void claimSignedReport()}
+          onSample={() => {
+            setTransaction(createSampleTransaction(capabilities.data?.attribution.requiredCode))
+            setReport(undefined)
+            setPendingClaimId(undefined)
+            setSelectedCheckId(undefined)
+            setStatus('idle')
+            setStatusMessage(
+              capabilities.data?.attribution.configured
+                ? 'Sample input loaded with the configured organizer tag. The result is not precomputed.'
+                : 'Sample input loaded without an attribution tag. It will truthfully show that Track 1 credit is unproven.',
+            )
+          }}
+          onReset={() => {
+            setTransaction(emptyTransaction(transaction.chainId))
+            setReport(undefined)
+            setPendingClaimId(undefined)
+            setSelectedCheckId(undefined)
+            setStatus('idle')
+            setStatusMessage(undefined)
+          }}
+          onUseConnectedAddress={(address) => setTransaction({ ...transaction, from: address })}
+          onBuildMento={() => void buildMentoProposal()}
+          onLoadMentoSwap={
+            pendingMentoSwap
+              ? () => {
+                  setTransaction(pendingMentoSwap)
                   setStatus('idle')
                   setStatusMessage(
-                    capabilities.data?.attribution.configured
-                      ? 'Sample input loaded with the configured organizer tag. The result is not precomputed.'
-                      : 'Sample input loaded without an attribution tag. It will truthfully show that Track 1 credit is unproven.',
+                    'Step 2 draft loaded. Inspect it against a fresh Celo snapshot; rebuild the route after any approval is confirmed.',
                   )
-                }}
-                onReset={() => setTransaction(emptyTransaction(transaction.chainId))}
-                connectedAddress={account.address}
-                onUseConnectedAddress={(address) =>
-                  setTransaction({ ...transaction, from: address })
                 }
-                onBuildMento={() => void buildMentoProposal()}
-                onLoadMentoSwap={
-                  pendingMentoSwap
-                    ? () => {
-                        setTransaction(pendingMentoSwap)
-                        setStatus('idle')
-                        setStatusMessage(
-                          'Step 2 draft loaded. Inspect it against a fresh Celo snapshot; rebuild the route after any approval is confirmed.',
-                        )
-                      }
-                    : undefined
-                }
-              />
-              <ExecutionPath decoded={report?.facts.decoded} />
-              <ChecksTable
-                checks={report?.checks}
-                selectedId={selectedCheckId}
-                onSelect={setSelectedCheckId}
-              />
-              <StateFooter report={report} />
-            </>
-          )}
-        </div>
+              : undefined
+          }
+          onSelectCheck={setSelectedCheckId}
+        />
         <EvidenceInspector
           report={report}
-          selectedCheck={selectedCheck}
+          selectedCheck={report?.checks.find((check) => check.id === selectedCheckId)}
           landing={showLanding}
-          onReplay={() => void replaySnapshot()}
+          onReplay={report?.signature ? () => void replaySnapshot() : undefined}
         />
       </main>
       <DocsDialog open={showDocs} onClose={() => setShowDocs(false)} />

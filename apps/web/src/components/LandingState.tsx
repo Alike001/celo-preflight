@@ -11,7 +11,7 @@ interface LandingStateProps {
 const workflow = [
   ['01', 'Unsigned transaction', 'Input only'],
   ['02', 'Celo evidence checks', 'Live state'],
-  ['03', 'Signed verdict', 'CLEAR · CAUTION · BLOCK'],
+  ['03', 'Signed verdict', 'Claim only if needed'],
 ] as const
 
 const assurances = [
@@ -44,8 +44,8 @@ export function LandingState({
       <div className="landing-intro">
         <h1 id="landing-heading">Know what a Celo transaction will do before you sign.</h1>
         <p>
-          Simulate an unsigned transaction against live Celo state and receive a signed,
-          deterministic verdict.
+          Simulate an unsigned transaction against live Celo state, review deterministic evidence,
+          then claim a signed verdict only when you need one.
         </p>
         <div className="landing-actions">
           <button className="landing-primary" type="button" onClick={onLoadSample}>

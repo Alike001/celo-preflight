@@ -28,7 +28,7 @@ export function webDistDirectory(): string | undefined {
 
 export function agentQuickstart(payment: PaymentCapability): string {
   const claimStep = payment.enabled
-    ? `3. Claim the fresh report through \`POST /api/preflight/claim\` with an x402 v2 exact client on ${payment.network}. The current price is ${payment.price} native Celo USDC. Send \`{ "reportId": prepared.id }\` as JSON. A successful response contains the signed report and its facilitator receipt.`
+    ? `3. In hosted mode, \`prepare\` returns an unsigned evidence preview (facts and checks) plus \`prepared.id\`; it has no report signature or settlement receipt. Claim the fresh report through \`POST /api/preflight/claim\` with an x402 v2 exact client on ${payment.network}. The current price is ${payment.price} native Celo USDC. Send \`{ "reportId": prepared.id }\` as JSON. A successful response contains the signed report and its facilitator receipt.`
     : `3. This deployment is in local-free mode, so \`prepare\` directly returns the signed report. Check \`/api/capabilities\` before assuming that behavior in another deployment.`
   return `# Celo Preflight agent integration
 
@@ -86,7 +86,10 @@ export function openApiDocument() {
             },
           },
           responses: {
-            '201': { description: 'Signed inspection report or a hosted claim requirement.' },
+            '201': {
+              description:
+                'Local-free mode returns a signed report. Hosted mode returns an unsigned evidence preview plus the metadata needed for an explicit x402 claim.',
+            },
             '400': { description: 'Invalid unsigned transaction proposal.' },
             '503': { description: 'Celo state could not be inspected.' },
           },

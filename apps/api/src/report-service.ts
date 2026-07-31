@@ -64,7 +64,12 @@ export class ReportService {
     }
     return mode === 'local-free'
       ? { mode, claimRequired: false, prepared, report }
-      : { mode, claimRequired: true, prepared }
+      : {
+          mode,
+          claimRequired: true,
+          prepared,
+          preview: { facts: report.facts, checks: report.checks },
+        }
   }
 
   async attachPaymentReceipt(

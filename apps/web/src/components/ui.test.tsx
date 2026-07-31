@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { PreparedReport, TransactionDraft } from '@preflight/shared'
 import { ChecksTable } from './ChecksTable.js'
@@ -155,8 +155,8 @@ describe('Flight Deck controls', () => {
     expect(screen.queryByText('$0.01')).toBeNull()
   })
 
-  it('renders the live hosted price rather than hard-coding one cent', () => {
-    render(
+  it('keeps hosted inspection free until a separate claim is requested', () => {
+    const { container } = render(
       <TransactionForm
         value={transaction}
         capabilities={{
@@ -172,14 +172,61 @@ describe('Flight Deck controls', () => {
         onReset={vi.fn()}
       />,
     )
-    expect(screen.getByRole('button', { name: /run preflight · \$0.02/i })).toBeTruthy()
+    expect(within(container).getByRole('button', { name: /run preflight/i })).toBeTruthy()
+    expect(within(container).queryByRole('button', { name: /claim signed report/i })).toBeNull()
+    expect(within(container).getByText(/simulation is free/i)).toBeTruthy()
+  })
+
+  it('labels an unclaimed hosted result as an unsigned preview', () => {
+    const { container } = render(<EvidenceInspector report={currentClearReport} />)
+    expect(
+      within(container).getByRole('heading', { name: 'PREVIEW CLEAR · UNCLAIMED' }),
+    ).toBeTruthy()
+    expect(within(container).getByText(/not a signed report/i)).toBeTruthy()
+    expect(
+      (
+        within(container).getByRole('button', {
+          name: 'Verify signature',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true)
+  })
+
+  it('renders a separate, explicit hosted claim action', () => {
+    const { container } = render(
+      <TransactionForm
+        value={transaction}
+        capabilities={{
+          localFree: false,
+          hostedPaid: true,
+          attribution: { configured: true, requiredCode: 'celo_preflight_test' },
+          payment: { network: 'eip155:42220', price: '$0.02' },
+        }}
+        status="awaiting-claim"
+        onChange={vi.fn()}
+        onSubmit={vi.fn()}
+        onClaim={vi.fn()}
+        claimPrice="$0.02"
+        onSample={vi.fn()}
+        onReset={vi.fn()}
+      />,
+    )
+    expect(
+      within(container).getByRole('button', { name: 'Claim signed report · $0.02' }),
+    ).toBeTruthy()
   })
 
   it('keeps the verdict and selected rule evidence linked', () => {
-    render(<EvidenceInspector report={report} selectedCheck={report.checks[0]} />)
-    expect(screen.getByRole('heading', { name: 'BLOCK' })).toBeTruthy()
-    expect(screen.getByText('execution reverted')).toBeTruthy()
-    expect(screen.getAllByText(/at least one deterministic safety rule failed/i)).toHaveLength(2)
+    const { container } = render(
+      <EvidenceInspector report={report} selectedCheck={report.checks[0]} />,
+    )
+    expect(
+      within(container).getByRole('heading', { name: 'PREVIEW BLOCK · UNCLAIMED' }),
+    ).toBeTruthy()
+    expect(within(container).getByText('execution reverted')).toBeTruthy()
+    expect(
+      within(container).getByText(/live evidence preview is not a signed report/i),
+    ).toBeTruthy()
   })
 
   it('selects a deterministic check from the table', () => {

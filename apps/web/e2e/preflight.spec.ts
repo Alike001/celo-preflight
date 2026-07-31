@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import type { PreparedReport } from '@preflight/shared'
+import { mockHostedPreviewApi } from './mockHostedPreview.js'
 
 const report: PreparedReport = {
   id: `0x${'a'.repeat(64)}`,
@@ -202,7 +203,7 @@ test('opens an existing paid report without a wallet or payment', async ({ page 
   await mockApi(page)
   await page.goto('/')
 
-  await page.getByRole('button', { name: 'View verified report' }).click()
+  await page.getByRole('button', { name: 'View current verified report' }).click()
 
   await expect(page.getByRole('heading', { name: 'CLEAR TO SIGN' })).toBeVisible()
   await expect(page.getByText('Snapshot block 72370000')).toBeVisible()
@@ -219,6 +220,18 @@ test('never presents expired paid evidence as sign-ready', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: 'HISTORICAL CLEAR · EXPIRED' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'CLEAR TO SIGN' })).toBeHidden()
+})
+
+test('shows hosted evidence before any explicit x402 claim', async ({ page }) => {
+  const claimRequests = await mockHostedPreviewApi(page, report)
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Load live sample' }).click()
+  await page.getByRole('button', { name: 'Run preflight' }).click()
+
+  await expect(page.getByRole('heading', { name: 'PREVIEW CLEAR · UNCLAIMED' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Claim signed report · $0.01' })).toBeVisible()
+  await expect(page.getByText(/no signed report or x402 settlement is claimed/i)).toBeVisible()
+  expect(claimRequests()).toBe(0)
 })
 
 test('opens real product documentation from the application bar', async ({ page }) => {

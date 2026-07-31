@@ -33,6 +33,7 @@ export function EvidenceInspector({
   const [showVerifier, setShowVerifier] = useState(false)
   const verdict = report?.verdict
   const expired = report ? isReportExpired(report) : false
+  const unclaimed = Boolean(report && !report.signature)
 
   async function copyReport() {
     if (!report) return
@@ -61,9 +62,11 @@ export function EvidenceInspector({
             {verdict
               ? expired
                 ? `HISTORICAL ${verdict} · EXPIRED`
-                : verdict === 'CLEAR'
-                  ? 'CLEAR TO SIGN'
-                  : verdict
+                : unclaimed
+                  ? `PREVIEW ${verdict} · UNCLAIMED`
+                  : verdict === 'CLEAR'
+                    ? 'CLEAR TO SIGN'
+                    : verdict
               : landing
                 ? 'AWAITING LIVE EVIDENCE'
                 : 'AWAITING INPUT'}
@@ -72,20 +75,22 @@ export function EvidenceInspector({
         <p>
           {expired
             ? 'This signed snapshot is authentic but expired. Re-run a fresh inspection before signing anything.'
-            : verdict === 'CLEAR'
-              ? 'Every applicable rule has sufficient passing evidence.'
-              : verdict === 'CAUTION'
-                ? 'No blocking failure, but one or more proofs are incomplete or ambiguous.'
-                : verdict === 'BLOCK'
-                  ? 'At least one deterministic safety rule failed.'
-                  : landing
-                    ? 'Run the live sample or inspect your own unsigned transaction. A verdict appears only after simulation.'
-                    : 'Paste an unsigned transaction to begin a live Celo inspection.'}
+            : unclaimed
+              ? 'This live evidence preview is not a signed report. Claim it only if you need a portable signature and settlement receipt.'
+              : verdict === 'CLEAR'
+                ? 'Every applicable rule has sufficient passing evidence.'
+                : verdict === 'CAUTION'
+                  ? 'No blocking failure, but one or more proofs are incomplete or ambiguous.'
+                  : verdict === 'BLOCK'
+                    ? 'At least one deterministic safety rule failed.'
+                    : landing
+                      ? 'Run the live sample or inspect your own unsigned transaction. A verdict appears only after simulation.'
+                      : 'Paste an unsigned transaction to begin a live Celo inspection.'}
         </p>
         <div className="verdict-actions">
           <button type="button" disabled={!report} onClick={copyReport}>
             {copied ? <Check aria-hidden /> : <Clipboard aria-hidden />}
-            {copied ? 'Copied' : 'Copy signed report'}
+            {copied ? 'Copied' : unclaimed ? 'Copy report preview' : 'Copy signed report'}
           </button>
           <button
             type="button"
@@ -94,10 +99,10 @@ export function EvidenceInspector({
           >
             <Code2 aria-hidden /> {showRaw ? 'Hide raw' : 'View raw simulation'}
           </button>
-          <button type="button" disabled={!report} onClick={() => setShowVerifier(true)}>
+          <button type="button" disabled={!report?.signature} onClick={() => setShowVerifier(true)}>
             <FileSignature aria-hidden /> Verify signature
           </button>
-          {onReplay && (
+          {onReplay && !unclaimed && (
             <button type="button" disabled={!report} onClick={onReplay}>
               <FileSignature aria-hidden /> Re-run snapshot
             </button>
@@ -175,8 +180,18 @@ export function EvidenceInspector({
           <div className="no-receipt">
             <FileSignature aria-hidden />
             <span>
-              <strong>{report ? 'Local-free inspection' : 'No report yet'}</strong>
-              <small>No x402 settlement is claimed without a facilitator receipt.</small>
+              <strong>
+                {report
+                  ? unclaimed
+                    ? 'Unsigned evidence preview'
+                    : 'Local-free inspection'
+                  : 'No report yet'}
+              </strong>
+              <small>
+                {unclaimed
+                  ? 'No signed report or x402 settlement is claimed until you explicitly choose Claim.'
+                  : 'No x402 settlement is claimed without a facilitator receipt.'}
+              </small>
             </span>
           </div>
         )}
