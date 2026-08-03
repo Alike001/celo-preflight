@@ -1,0 +1,64 @@
+name: Celo Sepolia USDC Fee Proof
+
+on:
+  workflow_dispatch:
+    inputs:
+      recipient:
+        description: 'Celo Sepolia recipient for the exactly 0.01 test USDC transfer'
+        required: true
+        type: string
+      authorization:
+        description: 'Type I_AUTHORIZE_ONE_CELO_SEPOLIA_TESTNET_PROOF'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  prove:
+    name: Broadcast one capped testnet proof
+    runs-on: ubuntu-latest
+    environment: celo-sepolia-fee-proof
+    steps:
+      - name: Confirm explicit authorization
+        env:
+          AUTHORIZATION: ${{ inputs.authorization }}
+        run: |
+          test "$AUTHORIZATION" = 'I_AUTHORIZE_ONE_CELO_SEPOLIA_TESTNET_PROOF' || {
+            echo 'Authorization phrase did not match. No transaction was sent.' >&2
+            exit 1
+          }
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Broadcast exactly one Celo Sepolia proof
+        env:
+          CELO_SEPOLIA_FEE_TEST_ADDRESS: ${{ secrets.CELO_SEPOLIA_FEE_TEST_ADDRESS }}
+          CELO_SEPOLIA_FEE_TEST_PRIVATE_KEY: ${{ secrets.CELO_SEPOLIA_FEE_TEST_PRIVATE_KEY }}
+          CELO_SEPOLIA_FEE_TEST_RECIPIENT: ${{ inputs.recipient }}
+          CELO_SEPOLIA_FEE_TEST_USDC_AMOUNT: '10000'
+          CELO_SEPOLIA_FEE_TEST_MAX_FEE_USDC: '10000'
+        run: |
+          test -n "$CELO_SEPOLIA_FEE_TEST_ADDRESS" || {
+            echo 'Missing CELO_SEPOLIA_FEE_TEST_ADDRESS secret.' >&2
+            exit 1
+          }
+          test -n "$CELO_SEPOLIA_FEE_TEST_PRIVATE_KEY" || {
+            echo 'Missing CELO_SEPOLIA_FEE_TEST_PRIVATE_KEY secret.' >&2
+            exit 1
+          }
+          pnpm test:fee-currency-sepolia --broadcast | tee celo-sepolia-fee-proof.json
+      - name: Publish non-secret receipt evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: celo-sepolia-fee-proof
+          path: celo-sepolia-fee-proof.json
+          if-no-files-found: error
+          retention-days: 30

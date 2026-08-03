@@ -90,6 +90,24 @@ use it for a human MetaMask account, provide any Mainnet key, or put a wallet ke
 future execution proof needs a Celo-native wallet path verified for this exact Celo Sepolia USDC
 adapter; do not substitute a CELO-gas MetaMask transfer.
 
+### One Celo Sepolia execution proof (manual GitHub Action)
+
+The repository provides a manual-only workflow at **Actions → Celo Sepolia USDC Fee Proof**. It is
+for one fresh, disposable Celo Sepolia account only; it never runs on push, pull request, or a
+schedule. The workflow sends exactly `0.01` test USDC with a maximum fee of `0.01` test USDC, waits
+for the receipt, and records the actual adapter-balance decrease.
+
+Before dispatching it, create a fresh account used only for this testnet proof, fund it with exactly
+`0.02` Circle Celo Sepolia USDC, and add these repository **Actions secrets** directly in GitHub:
+
+- `CELO_SEPOLIA_FEE_TEST_ADDRESS` — the fresh account's public address;
+- `CELO_SEPOLIA_FEE_TEST_PRIVATE_KEY` — that account's private key.
+
+Never paste this key into chat, a terminal, Git, Railway, or the product. Set the workflow's
+`recipient` to a different Celo Sepolia address you control and type its exact authorization phrase
+only after giving fresh explicit broadcast authority. The proof account should be considered burned
+after this test; it must never receive Mainnet funds.
+
 ## Hosted x402 mode
 
 Hosted paid claims remain disabled unless the Celo facilitator URL, API key, seller address, and price in [`apps/api/.env.example`](apps/api/.env.example) are configured **and** the facilitator advertises x402 v2 `exact` settlement on `eip155:42220`. Create the API key at [x402.celo.org](https://x402.celo.org) by signing a message with the seller wallet; this is not a transaction and includes initial settlement credits. Add it to Railway only as `X402_FACILITATOR_API_KEY`—never to Git or the browser. Hosted preparation returns a real but unsigned evidence preview before payment, so invalid input or an unavailable RPC cannot charge the user; only an explicit claim asks the wallet to pay and returns a signed report with the real facilitator settlement receipt. A price challenge never reserves a report; a supplied authorization receives a durable single-claim reservation, so concurrent callers cannot settle the same report twice. Invalid 4xx authorizations may retry, while ambiguous facilitator 5xx outcomes stay fail-closed for receipt recovery. Hosted preview creation is limited to 12 requests per forwarded client address per minute, and expired unclaimed reports are retained for 24 hours before deletion; paid reports are preserved as audit evidence.
