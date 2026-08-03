@@ -115,6 +115,8 @@ Agents can start with the deployed [integration quickstart](https://celo-preflig
 
 The public [ERC-8004 registration document](https://celo-preflight-production.up.railway.app/.well-known/agent.json) describes the same live web product and agent endpoints. Its URI is suitable for the Celo ERC-8004 Identity Registry; the owner must still explicitly approve the separate onchain registration transaction in their wallet.
 
+Celo Preflight's live Celo ERC-8004 identity is [Agent #9755 on 8004scan](https://8004scan.io/agents/celo/9755).
+
 The public [impact endpoint](https://celo-preflight-production.up.railway.app/api/impact) publishes aggregate issuer-bound claim and distinct-payer counts only. It does not expose payer addresses, private payment authorizations, or claim a unique-human count; settled-report retries return the existing report, while a simultaneous in-progress claim is rejected before it can authorize another settlement.
 
 ## Railway deployment

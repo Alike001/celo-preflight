@@ -4,6 +4,7 @@
 **Source:** https://github.com/Alike001/celo-preflight  
 **Track:** Most x402 Payments  
 **Submitted PayTo wallet:** `0x1c9d2c90A690Fc6BD326034792Bf87F5af32bb8E`
+**ERC-8004 identity:** [Celo Preflight #9755](https://8004scan.io/agents/celo/9755)
 
 ## The four-sentence pitch
 
@@ -17,6 +18,7 @@ Agents and wallets can construct a Celo transaction, but a user still has to sig
 4. **A meaningful unsafe case:** choose **Inspect your transaction**, set `From` to `0x1111111111111111111111111111111111111111`, `To` to Celo USDm `0x765DE816845861e75A25fCA122bb6898B8B1282a`, `Value` to `0`, and calldata to `0x095ea7b30000000000000000000000003333333333333333333333333333333333333333ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff`. The simulated call can succeed, but the published policy deterministically returns `BLOCK`.
 5. **A no-network demo backup:** open `demo/offline/index.html` locally. It is clearly labelled historical recorded evidence and cannot request a payment or broadcast a transaction.
 6. **A real Celo Sepolia fee-currency execution:** [open the CIP-64 transaction](https://celo-sepolia.blockscout.com/tx/0xc447fe95bec618505fa3af5491e7bdadc2a61eadec228c0d5f0be203da31f77d). It transferred exactly `0.01` Circle test USDC while its transaction fee was paid in the same USDC through the live adapter; the receipt is `status: 0x1` and `type: 0x7b`.
+7. **A real Celo agent identity:** [open Celo Preflight #9755 on 8004scan](https://8004scan.io/agents/celo/9755). Its onchain ERC-721 identity records the product's deterministic pre-sign purpose and x402 support on Celo Mainnet.
 
 ## Celo-specific value
 
