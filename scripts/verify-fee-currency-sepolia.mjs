@@ -61,13 +61,16 @@ const publicClient = createPublicClient({ chain: celoSepolia, transport: http(RP
 const chainId = await publicClient.getChainId()
 assert(chainId === 11142220, `Expected Celo Sepolia (11142220), received chain ID ${chainId}.`)
 
-const [blockNumber, currencies] = await Promise.all([
+const [blockNumber, currencies, maxPriorityFeePerGas] = await Promise.all([
   publicClient.getBlockNumber(),
   publicClient.readContract({
     address: FEE_CURRENCY_DIRECTORY,
     abi: directoryAbi,
     functionName: 'getCurrencies',
   }),
+  publicClient
+    .request({ method: 'eth_maxPriorityFeePerGas' })
+    .then((priorityFee) => hexToBigInt(priorityFee)),
 ])
 const listedCurrencies = await Promise.all(
   currencies.map(async (currency) => {
@@ -111,6 +114,7 @@ const readOnly = {
   feeCurrency: feeCurrency ?? null,
   adaptedToken: feeToken ?? null,
   feeGasPriceNormalized: feeGasPrice?.toString() ?? null,
+  maxPriorityFeePerGas: maxPriorityFeePerGas.toString(),
   listedFeeCurrencies: listedCurrencies,
   estimatedTransaction: 'ERC-20 USDC transfer using CIP-64 type 0x7b and USDC adapter fee currency',
   writes: 'none',
@@ -164,6 +168,11 @@ const privateKey = process.env.CELO_SEPOLIA_FEE_TEST_PRIVATE_KEY
 assert(
   feeCurrency && feeToken && feeGasPrice !== undefined,
   'No live adapter-backed fee currency is currently allowlisted.',
+)
+assert(maxPriorityFeePerGas > 0n, 'Celo Sepolia returned no usable EIP-1559 priority fee.')
+assert(
+  maxPriorityFeePerGas <= feeGasPrice,
+  'Celo Sepolia priority fee exceeds the adapter-priced maximum fee.',
 )
 assert(
   privateKey && /^0x[0-9a-fA-F]{64}$/.test(privateKey),
@@ -240,9 +249,9 @@ const serializedTransaction = await signer.signTransaction({
   feeCurrency,
   gas,
   maxFeePerGas: feeGasPrice,
-  // Celo Sepolia's current USDC adapter rejects a zero priority fee. One normalized unit is the
-  // protocol minimum and remains far below the separately enforced USDC fee cap.
-  maxPriorityFeePerGas: 1n,
+  // Use the live EIP-1559 priority fee instead of assuming a literal minimum. Celo Sepolia's
+  // adapter rejects a zero value, and the value is bounded by the adapter-priced maximum fee.
+  maxPriorityFeePerGas,
   nonce,
 })
 assert(
