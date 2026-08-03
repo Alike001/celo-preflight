@@ -35,7 +35,9 @@ export function useMentoProposal({
       )
     } catch (error) {
       setStatus('error')
-      setMessage(errorMessage(error))
+      setMessage(
+        `${errorMessage(error)} Choose a different action; no Mento approval or swap draft is available.`,
+      )
     }
   }
 }

@@ -29,33 +29,36 @@ assert(
 )
 
 const history = await request('/api/reports')
-const historicalPaid = history.reports.find(
-  (report) => report.paid && Date.parse(report.expiresAt) <= Date.now(),
-)
-assert(historicalPaid, 'No expired paid report is available for read-only smoke verification.')
+const paid = history.reports.filter((report) => report.paid)
+assert(paid.length > 0, 'No paid report is available for read-only smoke verification.')
 
-const persisted = await request(`/api/reports/${historicalPaid.id}`)
-assert(persisted.report.id === historicalPaid.id, 'Retrieved report ID differs from history entry.')
-assert(
-  Date.parse(persisted.report.expiresAt) <= Date.now(),
-  'Smoke report unexpectedly is not expired.',
+const persistedReports = await Promise.all(
+  paid.map(async (summary) => ({ summary, ...(await request(`/api/reports/${summary.id}`)) })),
 )
+const issuerBound = persistedReports.find((entry) => entry.report.paymentSignature)
+const legacy = persistedReports.find((entry) => !entry.report.paymentSignature)
+const selected = issuerBound ?? legacy
+assert(selected, 'No persisted paid receipt was available for smoke verification.')
 assert(
-  !persisted.report.paymentSignature,
-  'Expected existing report to remain honestly legacy/unbound.',
+  selected.report.id === selected.summary.id,
+  'Retrieved report ID differs from history entry.',
 )
 
-const replay = await request(`/api/reports/${historicalPaid.id}/replay`, { method: 'POST' })
-assert(replay.reportId === historicalPaid.id, 'Replay report ID differs from the selected report.')
+const replay = await request(`/api/reports/${selected.summary.id}/replay`, { method: 'POST' })
+assert(
+  replay.reportId === selected.summary.id,
+  'Replay report ID differs from the selected report.',
+)
 assert(replay.facts?.snapshot?.blockNumber, 'Replay returned no snapshot block.')
 
 console.log(
   JSON.stringify({
     status: 'ok',
     baseUrl,
-    reportId: historicalPaid.id,
+    reportId: selected.summary.id,
     snapshotBlock: replay.facts.snapshot.blockNumber,
-    receiptBinding: 'legacy-unbound',
+    receiptBinding: issuerBound ? 'issuer-bound' : 'legacy-unbound',
+    legacyReceiptAlsoPresent: Boolean(legacy),
     writes: 'none',
   }),
 )

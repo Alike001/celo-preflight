@@ -14,12 +14,17 @@ export interface PaymentMetrics {
   distinctPayers: number
 }
 
+export type ClaimReservation = 'reserved' | 'already-settled' | 'in-progress' | 'not-found'
+
 export interface ReportRepository {
   save(report: PreparedReport): void
   get(id: string): PreparedReport | undefined
   list(limit: number): PreparedReport[]
   hasPaymentTransaction(transactionHash: string): boolean
+  reserveClaim(id: string, now: number, staleAfterMs: number): ClaimReservation
+  releaseClaim(id: string): void
   attachPayment(id: string, receipt: PaymentReceipt): PreparedReport | undefined
+  pruneExpiredUnclaimed(before: string): number
   paymentMetrics(): PaymentMetrics
 }
 
@@ -40,6 +45,11 @@ export class ReportStore implements ReportRepository {
         report_json TEXT NOT NULL
       );
       CREATE INDEX IF NOT EXISTS reports_created_at ON reports(created_at DESC);
+      CREATE TABLE IF NOT EXISTS claim_reservations (
+        report_id TEXT PRIMARY KEY,
+        reserved_at INTEGER NOT NULL,
+        FOREIGN KEY (report_id) REFERENCES reports(id) ON DELETE CASCADE
+      );
     `)
   }
 
@@ -85,6 +95,36 @@ export class ReportStore implements ReportRepository {
     return Boolean(row)
   }
 
+  reserveClaim(id: string, now: number, staleAfterMs: number): ClaimReservation {
+    this.database.exec('BEGIN IMMEDIATE')
+    try {
+      const row = this.database.prepare('SELECT report_json FROM reports WHERE id = ?').get(id) as
+        | ReportRow
+        | undefined
+      if (!row) return 'not-found'
+      const report = JSON.parse(row.report_json) as PreparedReport
+      if (report.payment) return 'already-settled'
+
+      this.database
+        .prepare('DELETE FROM claim_reservations WHERE report_id = ? AND reserved_at <= ?')
+        .run(id, now - staleAfterMs)
+      const existing = this.database
+        .prepare('SELECT 1 FROM claim_reservations WHERE report_id = ?')
+        .get(id)
+      if (existing) return 'in-progress'
+      this.database
+        .prepare('INSERT INTO claim_reservations (report_id, reserved_at) VALUES (?, ?)')
+        .run(id, now)
+      return 'reserved'
+    } finally {
+      this.database.exec('COMMIT')
+    }
+  }
+
+  releaseClaim(id: string): void {
+    this.database.prepare('DELETE FROM claim_reservations WHERE report_id = ?').run(id)
+  }
+
   paymentMetrics(): PaymentMetrics {
     const row = this.database
       .prepare(
@@ -104,6 +144,20 @@ export class ReportStore implements ReportRepository {
     if (!report) return undefined
     const updated = { ...report, payment: receipt }
     this.save(updated)
+    this.releaseClaim(id)
     return updated
+  }
+
+  pruneExpiredUnclaimed(before: string): number {
+    const result = this.database
+      .prepare(
+        `DELETE FROM reports
+         WHERE expires_at < ? AND json_extract(report_json, '$.payment') IS NULL`,
+      )
+      .run(before)
+    this.database.exec(
+      'DELETE FROM claim_reservations WHERE report_id NOT IN (SELECT id FROM reports)',
+    )
+    return Number(result.changes)
   }
 }

@@ -257,7 +257,7 @@ export function App() {
             setStatus('idle')
             setStatusMessage(
               capabilities.data?.attribution.configured
-                ? 'Sample input loaded with the configured organizer tag. The result is not precomputed.'
+                ? 'Sample input loaded: a bounded, unsigned $0.01 native Celo USDC transfer with the configured organizer tag. The result is not precomputed and Preflight never broadcasts it.'
                 : 'Sample input loaded without an attribution tag. It will truthfully show that Track 1 credit is unproven.',
             )
           }}

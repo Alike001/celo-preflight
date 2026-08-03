@@ -10,12 +10,14 @@ export function createSampleTransaction(requiredAttributionCode?: string): Trans
   const call = encodeFunctionData({
     abi: transferAbi,
     functionName: 'transfer',
-    args: ['0x2222222222222222222222222222222222222222', 0n],
+    // A real, bounded native Celo USDC transfer between the public evidence
+    // wallets. This stays unsigned and Preflight never broadcasts it.
+    args: ['0x20Bff5B3BF2247eA4671fc946ee2ec2a1aa0Cd5B', 10_000n],
   })
   return {
     chainId: 42220,
-    from: '0x1111111111111111111111111111111111111111',
-    to: '0x765DE816845861e75A25fCA122bb6898B8B1282a',
+    from: '0x1c9d2c90A690Fc6BD326034792Bf87F5af32bb8E',
+    to: '0xcebA9300f2b948710d2653dD7B07f33A8B32118C',
     valueWei: '0',
     data: requiredAttributionCode ? concat([call, toDataSuffix(requiredAttributionCode)]) : call,
   }

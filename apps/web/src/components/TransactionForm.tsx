@@ -88,7 +88,7 @@ export const TransactionForm = forwardRef<HTMLInputElement, TransactionFormProps
             </button>
             {connectedAddress && onBuildMento && (
               <button type="button" onClick={onBuildMento}>
-                <Landmark aria-hidden size={14} /> Live Mento route
+                <Landmark aria-hidden size={14} /> Check live Mento route
               </button>
             )}
             {onLoadMentoSwap && (

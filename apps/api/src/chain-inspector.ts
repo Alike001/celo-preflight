@@ -1,15 +1,15 @@
 import { createRequire } from 'node:module'
 import { fromDataSuffix, toDataSuffix } from '@celo/attribution-tags'
 import type { Mento as MentoClient } from '@mento-protocol/mento-sdk'
-import { concat, parseAbi, type PublicClient } from 'viem'
+import { concat, type PublicClient } from 'viem'
 import type { Address, InspectionFacts, SimulationFact, TransactionDraft } from '@preflight/shared'
-import { decodeTransaction, FEE_CURRENCY_DIRECTORY, mentoRouterAbi } from '@preflight/engine'
+import { decodeTransaction, mentoRouterAbi } from '@preflight/engine'
 import { createChainClient } from './chain-client.js'
 import type { CeloPublicClient } from './chain-client.js'
 import { errorMessage, HttpError } from './errors.js'
 import type { ApiConfig } from './config.js'
+import { feeCurrencyAllowed } from './fee-currency.js'
 
-const feeCurrencyDirectoryAbi = parseAbi(['function getCurrencies() view returns (address[])'])
 const require = createRequire(import.meta.url)
 // The inspected 3.3 beta ESM bundle omits extension suffixes; its documented CJS export is valid.
 const { Mento, deadlineFromMinutes } = require('@mento-protocol/mento-sdk') as {
@@ -118,25 +118,6 @@ async function simulate(
       status: isRevert(error) ? 'revert' : 'unavailable',
       error: errorMessage(error),
     }
-  }
-}
-
-async function feeCurrencyAllowed(
-  client: CeloPublicClient,
-  feeCurrency: Address | undefined,
-  blockNumber: bigint,
-): Promise<boolean | undefined> {
-  if (!feeCurrency) return undefined
-  try {
-    const currencies = await client.readContract({
-      address: FEE_CURRENCY_DIRECTORY,
-      abi: feeCurrencyDirectoryAbi,
-      functionName: 'getCurrencies',
-      blockNumber,
-    })
-    return currencies.some((currency) => currency.toLowerCase() === feeCurrency.toLowerCase())
-  } catch {
-    return undefined
   }
 }
 
@@ -257,7 +238,12 @@ export class ChainInspector {
       decoded: decodeTransaction(transaction),
       attributionCodes: parsedAttribution?.codes ?? [],
     }
-    const allowed = await feeCurrencyAllowed(client, transaction.feeCurrency, block.number)
+    const allowed = await feeCurrencyAllowed(
+      client,
+      transaction.chainId,
+      transaction.feeCurrency,
+      block.number,
+    )
     if (allowed !== undefined) facts.feeCurrencyAllowed = allowed
     await enrichMento(client, facts, blockNumber, includeCurrentMentoTradability)
     return facts
@@ -286,7 +272,11 @@ export class ChainInspector {
       )
       return toMentoProposal(owner, route, tradable, built, requiredAttributionCode)
     } catch (error) {
-      throw new HttpError(503, 'Mento could not build a live swap proposal.', errorMessage(error))
+      const details = errorMessage(error)
+      const message = /no valid median/i.test(details)
+        ? 'Live USDm → KESm Mento routing is unavailable because Celo has no current valid median. No approval or swap draft was created.'
+        : 'Mento could not build a live swap proposal. No approval or swap draft was created.'
+      throw new HttpError(503, message, details)
     }
   }
 }

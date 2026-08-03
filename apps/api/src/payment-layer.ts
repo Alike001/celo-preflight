@@ -265,28 +265,3 @@ export async function createPaymentCapability(
     ),
   }
 }
-
-export function claimPrecondition(reports: ReportRepository): RequestHandler {
-  return (request: Request, response: Response, next: NextFunction) => {
-    const reportId = (request.body as { reportId?: unknown } | undefined)?.reportId
-    if (typeof reportId !== 'string') {
-      response.status(400).json({ error: 'reportId is required.' })
-      return
-    }
-    const report = reports.get(reportId)
-    if (!report) {
-      response.status(404).json({ error: 'Prepared report not found.' })
-      return
-    }
-    if (new Date(report.expiresAt).getTime() <= Date.now()) {
-      response.status(410).json({ error: 'Prepared report expired. Run preflight again.' })
-      return
-    }
-    if (report.payment) {
-      response.json({ report })
-      return
-    }
-    response.locals.report = report
-    next()
-  }
-}

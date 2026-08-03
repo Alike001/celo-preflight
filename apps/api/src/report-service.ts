@@ -84,6 +84,7 @@ export class ReportService {
     const paymentSignature = await this.signer.sign(paymentHash)
     const updated: PreparedReport = { ...withReceipt, paymentSignature }
     this.reports.save(updated)
+    this.reports.releaseClaim(reportId)
     return updated
   }
 }

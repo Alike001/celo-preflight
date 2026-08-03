@@ -8,7 +8,7 @@ import type {
   PreparedReport,
 } from '@preflight/shared'
 import { recoverHistoricCeloClaim, reconcileEip3009Settlement } from './payment-layer.js'
-import type { PaymentMetrics, ReportRepository } from './report-store.js'
+import type { ClaimReservation, PaymentMetrics, ReportRepository } from './report-store.js'
 
 const address = (digit: string) => `0x${digit.repeat(40)}` as Address
 const payer = address('6')
@@ -45,12 +45,19 @@ class MemoryReports implements ReportRepository {
       (report) => report.payment?.transactionHash.toLowerCase() === transactionHash.toLowerCase(),
     )
   }
+  reserveClaim(_id: string, _now: number, _staleAfterMs: number): ClaimReservation {
+    return 'reserved'
+  }
+  releaseClaim(_id: string) {}
   attachPayment(id: string, receipt: PaymentReceipt) {
     const report = this.get(id)
     if (!report) return undefined
     const updated = { ...report, payment: receipt }
     this.save(updated)
     return updated
+  }
+  pruneExpiredUnclaimed(_before: string) {
+    return 0
   }
   paymentMetrics(): PaymentMetrics {
     const reports = [...this.values.values()].filter(

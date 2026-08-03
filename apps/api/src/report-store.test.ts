@@ -42,4 +42,35 @@ describe('ReportStore payment metrics', () => {
 
     expect(store.paymentMetrics()).toEqual({ settledReports: 2, distinctPayers: 1 })
   })
+
+  it('atomically reserves one unpaid report and releases the reservation after receipt persistence', () => {
+    const store = new ReportStore(mkdtempSync(join(tmpdir(), 'celo-preflight-store-')))
+    const pending = report('pending')
+    delete pending.payment
+    store.save(pending)
+
+    expect(store.reserveClaim('pending', 1_000, 60_000)).toBe('reserved')
+    expect(store.reserveClaim('pending', 1_001, 60_000)).toBe('in-progress')
+    store.attachPayment('pending', {
+      network: 'eip155:42220',
+      transactionHash: `0x${'f'.repeat(64)}`,
+      payTo: address('8'),
+      amount: '10000',
+      asset: address('7'),
+      settledAt: '2026-07-30T00:00:00.000Z',
+    })
+    expect(store.reserveClaim('pending', 1_002, 60_000)).toBe('already-settled')
+  })
+
+  it('removes expired unclaimed reports but preserves paid audit evidence', () => {
+    const store = new ReportStore(mkdtempSync(join(tmpdir(), 'celo-preflight-store-')))
+    const unclaimed = report('unclaimed')
+    delete unclaimed.payment
+    store.save(unclaimed)
+    store.save(report('paid'))
+
+    expect(store.pruneExpiredUnclaimed('2026-08-01T00:00:00.000Z')).toBe(1)
+    expect(store.get('unclaimed')).toBeUndefined()
+    expect(store.get('paid')).toBeDefined()
+  })
 })

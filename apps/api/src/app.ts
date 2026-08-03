@@ -1,20 +1,18 @@
 import express, { type ErrorRequestHandler } from 'express'
 import { resolve } from 'node:path'
 import { isAddress } from 'viem'
-import type { Address, PrepareResponse, PreparedReport } from '@preflight/shared'
+import type { Address, PrepareResponse } from '@preflight/shared'
 import { parseTransactionDraft, ValidationError } from '@preflight/shared'
 import { evaluateInspection } from '@preflight/engine'
 import { ChainInspector } from './chain-inspector.js'
 import type { ApiConfig } from './config.js'
 import { HttpError } from './errors.js'
-import {
-  claimPrecondition,
-  createPaymentCapability,
-  type PaymentCapability,
-} from './payment-layer.js'
+import { createPaymentCapability, type PaymentCapability } from './payment-layer.js'
+import { claimPrecondition, claimedReport, releaseRejectedClaim } from './claim-guard.js'
 import { ReportService } from './report-service.js'
 import { ReportSigner } from './report-signer.js'
 import { ReportStore, type ReportRepository } from './report-store.js'
+import { createPrepareRateLimit } from './request-guard.js'
 import { agentQuickstart, openApiDocument, reportSummary, webDistDirectory } from './app-helpers.js'
 
 export interface AppOverrides {
@@ -28,6 +26,8 @@ export interface AppRuntime {
   app: express.Express
   payment: PaymentCapability
 }
+
+const UNCLAIMED_REPORT_RETENTION_MS = 24 * 60 * 60 * 1_000
 
 export async function createApp(
   config: ApiConfig,
@@ -52,6 +52,9 @@ export async function createApp(
   const app = express()
   const webDist = webDistDirectory()
 
+  // Railway forwards one client-address hop. Local-free development keeps
+  // Express's default direct-connection behavior.
+  if (payment.enabled) app.set('trust proxy', 1)
   app.disable('x-powered-by')
   app.use(express.json({ limit: '64kb' }))
   if (webDist) app.use(express.static(webDist))
@@ -90,10 +93,18 @@ export async function createApp(
     response.type('text/markdown').send(agentQuickstart(payment))
   })
 
-  app.post('/api/preflight/prepare', async (request, response) => {
-    const transaction = parseTransactionDraft(request.body)
-    response.status(201).json(await service.prepare(transaction, mode))
-  })
+  const prepareRateLimit = payment.enabled ? createPrepareRateLimit() : undefined
+  app.post(
+    '/api/preflight/prepare',
+    ...(prepareRateLimit ? [prepareRateLimit] : []),
+    async (request, response) => {
+      reports.pruneExpiredUnclaimed(
+        new Date(Date.now() - UNCLAIMED_REPORT_RETENTION_MS).toISOString(),
+      )
+      const transaction = parseTransactionDraft(request.body)
+      response.status(201).json(await service.prepare(transaction, mode))
+    },
+  )
 
   app.post('/api/mento/live-usdm-kesm-proposal', async (request, response) => {
     const owner = request.body?.owner
@@ -208,8 +219,8 @@ export async function createApp(
     app.post(
       '/api/preflight/claim',
       claimPrecondition(reports),
-      payment.middleware,
-      (_request, response) => response.json({ report: response.locals.report as PreparedReport }),
+      releaseRejectedClaim(reports, payment.middleware),
+      (_request, response) => response.json({ report: claimedReport(response) }),
     )
   } else {
     app.post('/api/preflight/claim', (_request, response) => {

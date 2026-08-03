@@ -8,7 +8,15 @@ export const MENTO_ROUTERS: Record<SupportedChainId, Address> = {
   11142220: '0xcf6cD45210b3ffE3cA28379C4683F1e60D0C2CCd',
 }
 
-export const FEE_CURRENCY_DIRECTORY = '0x9212Fb72ae65367A7c887eC4Ad9bE310BAC611BF'
+/**
+ * FeeCurrencyDirectory is deployed separately on Celo Mainnet and Celo Sepolia.
+ * Do not reuse the Sepolia address on Mainnet: a failed read must remain a WARN,
+ * never become an assumed allowlist result.
+ */
+export const FEE_CURRENCY_DIRECTORIES: Record<SupportedChainId, Address> = {
+  42220: '0x15F344b9E6c3Cb6F0376A36A64928b13F62C6276',
+  11142220: '0x9212Fb72ae65367A7c887eC4Ad9bE310BAC611BF',
+}
 
 // This is deliberately a small, explicit registry rather than an inference from
 // a four-byte selector. A contract can expose `transfer`/`approve` without being

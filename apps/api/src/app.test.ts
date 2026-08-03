@@ -1,52 +1,14 @@
 import type { Express, RequestHandler } from 'express'
 import request from 'supertest'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
-import type { Address, InspectionFacts, PaymentReceipt, PreparedReport } from '@preflight/shared'
+import type { Address, InspectionFacts, PreparedReport } from '@preflight/shared'
 import type { ApiConfig } from './config.js'
 import { HttpError } from './errors.js'
 import { createApp } from './app.js'
 import { createPaymentCapability, type PaymentCapability } from './payment-layer.js'
-import type { PaymentMetrics, ReportRepository } from './report-store.js'
+import { MemoryReports } from './test-support.js'
 
 const address = (digit: string) => `0x${digit.repeat(40)}` as Address
-
-class MemoryReports implements ReportRepository {
-  readonly values = new Map<string, PreparedReport>()
-  save(report: PreparedReport) {
-    this.values.set(report.id, report)
-  }
-  get(id: string) {
-    return this.values.get(id)
-  }
-  list(limit: number) {
-    return [...this.values.values()].slice(0, limit)
-  }
-  hasPaymentTransaction(transactionHash: string) {
-    return [...this.values.values()].some(
-      (report) => report.payment?.transactionHash.toLowerCase() === transactionHash.toLowerCase(),
-    )
-  }
-  attachPayment(id: string, receipt: PaymentReceipt) {
-    const report = this.get(id)
-    if (!report) return undefined
-    const updated = { ...report, payment: receipt }
-    this.save(updated)
-    return updated
-  }
-  paymentMetrics(): PaymentMetrics {
-    const reports = [...this.values.values()].filter(
-      (report) => report.payment?.transactionHash && report.paymentSignature,
-    )
-    return {
-      settledReports: reports.length,
-      distinctPayers: new Set(
-        reports.flatMap((report) =>
-          report.payment?.payer ? [report.payment.payer.toLowerCase()] : [],
-        ),
-      ).size,
-    }
-  }
-}
 
 const config: ApiConfig = {
   port: 0,
@@ -276,6 +238,37 @@ describe('hosted report access and claim preconditions', () => {
     const response = await request(app).post('/api/preflight/claim').send({ reportId: 'expired' })
     expect(response.status).toBe(410)
     expect(paymentGate).toHaveBeenCalledTimes(calls)
+  })
+
+  it('reserves exactly one payment-authorized claim until settlement is persisted', async () => {
+    const prepared = reports.get(reportId)!
+    reports.save({ ...prepared, id: 'race', expiresAt: '2099-01-01T00:00:00.000Z' })
+    const calls = paymentGate.mock.calls.length
+    const headers = { 'x-test-payment': 'valid', 'payment-signature': 'test-authorization' }
+    const first = request(app).post('/api/preflight/claim').set(headers).send({ reportId: 'race' })
+    const second = request(app).post('/api/preflight/claim').set(headers).send({ reportId: 'race' })
+    const responses = await Promise.all([first, second])
+
+    expect(
+      responses.map((response) => response.status).sort((left, right) => left - right),
+    ).toEqual([200, 409])
+    expect(paymentGate).toHaveBeenCalledTimes(calls + 1)
+  })
+
+  it('releases an invalid authorization so a corrected authorization can retry', async () => {
+    const prepared = reports.get(reportId)!
+    reports.save({ ...prepared, id: 'retryable', expiresAt: '2099-01-01T00:00:00.000Z' })
+    const invalid = await request(app)
+      .post('/api/preflight/claim')
+      .set('payment-signature', 'invalid-authorization')
+      .send({ reportId: 'retryable' })
+    expect(invalid.status).toBe(402)
+    await new Promise<void>((resolve) => setImmediate(resolve))
+    const corrected = await request(app)
+      .post('/api/preflight/claim')
+      .set({ 'x-test-payment': 'valid', 'payment-signature': 'corrected-authorization' })
+      .send({ reportId: 'retryable' })
+    expect(corrected.status).toBe(200)
   })
 
   it('returns a persisted paid report idempotently without charging again', async () => {
