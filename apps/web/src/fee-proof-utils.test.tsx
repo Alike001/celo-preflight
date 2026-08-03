@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { createWalletClient, custom } from 'viem'
+import { privateKeyToAccount } from 'viem/accounts'
+import { celoSepolia } from 'viem/chains'
 import {
   CELO_SEPOLIA_USDC,
   findLiveUsdcFeeCurrency,
@@ -41,5 +44,30 @@ describe('Celo Sepolia fee proof guards', () => {
       '0x2222222222222222222222222222222222222222',
     )
     expect(() => parseRecipient('not-an-address')).toThrow(/recipient/i)
+  })
+
+  it('serializes a locally signed Celo fee-currency transfer as CIP-64', async () => {
+    const account = privateKeyToAccount(`0x${'1'.repeat(64)}`)
+    const signer = createWalletClient({
+      account,
+      chain: celoSepolia,
+      transport: custom({
+        request: async ({ method }) => {
+          if (method === 'eth_chainId') return '0xaa044c'
+          throw new Error(`Unexpected local signer request: ${method}`)
+        },
+      }),
+    })
+    const serialized = await signer.signTransaction({
+      nonce: 0,
+      gas: 96_007n,
+      maxFeePerGas: 78_750_000_000n,
+      maxPriorityFeePerGas: 0n,
+      to: CELO_SEPOLIA_USDC,
+      data: '0x',
+      feeCurrency: '0xbf1441Ea57f43f35f713431001f35742c88071c7',
+    })
+
+    expect(serialized.startsWith('0x7b')).toBe(true)
   })
 })

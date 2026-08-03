@@ -54,6 +54,7 @@ jobs:
             echo 'Missing CELO_SEPOLIA_FEE_TEST_PRIVATE_KEY secret.' >&2
             exit 1
           }
+          set -o pipefail
           pnpm test:fee-currency-sepolia --broadcast | tee celo-sepolia-fee-proof.json
       - name: Publish non-secret receipt evidence
         uses: actions/upload-artifact@v4

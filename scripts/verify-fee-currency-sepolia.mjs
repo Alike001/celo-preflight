@@ -194,7 +194,6 @@ const transaction = {
   to: feeToken,
   data,
   feeCurrency,
-  type: '0x7b',
 }
 const [gas, usdcBefore, adapterBefore] = await Promise.all([
   publicClient.estimateGas(transaction),
@@ -226,8 +225,29 @@ assert(
   'Adapter-normalized USDC balance cannot cover maximum fee.',
 )
 
-const walletClient = createWalletClient({ account, chain: celoSepolia, transport: http(RPC_URL) })
-const hash = await walletClient.sendTransaction({ ...transaction, gas, maxFeePerGas: feeGasPrice })
+// Forno intentionally does not expose `eth_sendTransaction`; a local account must sign the
+// Celo-formatted CIP-64 envelope first, then submit only its raw signed bytes. Passing the address
+// as the action account would instead make viem ask the RPC to sign, so keep the local account on
+// the client and omit `account` from the signing request.
+const signer = createWalletClient({ account, chain: celoSepolia, transport: http(RPC_URL) })
+const nonce = await publicClient.getTransactionCount({
+  address: account.address,
+  blockTag: 'pending',
+})
+const serializedTransaction = await signer.signTransaction({
+  to: feeToken,
+  data,
+  feeCurrency,
+  gas,
+  maxFeePerGas: feeGasPrice,
+  maxPriorityFeePerGas: 0n,
+  nonce,
+})
+assert(
+  serializedTransaction.startsWith('0x7b'),
+  'Expected a locally signed Celo CIP-64 (0x7b) transaction envelope.',
+)
+const hash = await publicClient.sendRawTransaction({ serializedTransaction })
 const receipt = await publicClient.waitForTransactionReceipt({ hash })
 assert(receipt.status === 'success', 'Celo Sepolia fee-currency transaction reverted.')
 const [usdcAfter, adapterAfter] = await Promise.all([
