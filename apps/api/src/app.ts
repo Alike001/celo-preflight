@@ -57,7 +57,10 @@ export async function createApp(
   if (payment.enabled) app.set('trust proxy', 1)
   app.disable('x-powered-by')
   app.use(express.json({ limit: '64kb' }))
-  if (webDist) app.use(express.static(webDist))
+  // ERC-8004 resolves agent registration through `/.well-known/agent.json`.
+  // Express ignores dot-prefixed paths by default, which would otherwise make
+  // this public build artifact fall through to the SPA HTML shell.
+  if (webDist) app.use(express.static(webDist, { dotfiles: 'allow' }))
   app.use((_request, response, next) => {
     response.setHeader('X-Content-Type-Options', 'nosniff')
     response.setHeader('Referrer-Policy', 'no-referrer')
