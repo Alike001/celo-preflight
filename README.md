@@ -78,17 +78,15 @@ adapter `0xbf1441Ea57f43f35f713431001f35742c88071c7` to token
 pair. The adapter—not the 6-decimal token—is required in `feeCurrency`; it presents its balance in
 normalized 18-decimal units for gas calculations.
 
-Only after explicitly authorizing one testnet transaction should you export a dedicated Celo Sepolia
-key, a different testnet recipient, a positive USDC transfer amount, and a maximum USDC fee in base
-units, then run:
+For a human-held MetaMask account, use the separate browser-wallet proof page at
+[`/?testnet-proof=1`](https://celo-preflight-production.up.railway.app/?testnet-proof=1). It has no
+automatic wallet connection, reads the live directory and adapter-priced gas before a wallet prompt,
+requires an explicit in-page authorization statement, and asks MetaMask to sign only the capped Celo
+Sepolia transaction. It then verifies the receipt and the adapter-balance decrease. It never receives
+or asks for a private key.
 
-```bash
-pnpm test:fee-currency-sepolia --broadcast
-```
-
-The script refuses any chain other than Celo Sepolia, requires both transfer and fee caps, estimates
-the adapter-priced gas before signing, and proves the adapter balance decreased after the successful
-receipt. Never provide a Mainnet key or place this key in Railway.
+The `--broadcast` script mode remains for controlled automation with a secret manager only. Do not
+use it for a human MetaMask account, provide any Mainnet key, or put a wallet key in Railway.
 
 ## Hosted x402 mode
 

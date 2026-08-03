@@ -98,6 +98,9 @@ export function DocsDialog({ open, onClose }: { open: boolean; onClose: () => vo
             <a href="/api/impact" target="_blank" rel="noreferrer">
               View public x402 evidence <ExternalLink aria-hidden size={13} />
             </a>
+            <a href="/?testnet-proof=1">
+              Open separate Celo Sepolia fee proof <ExternalLink aria-hidden size={13} />
+            </a>
           </section>
         </div>
       </section>

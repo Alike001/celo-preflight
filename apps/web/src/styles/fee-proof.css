@@ -1,0 +1,247 @@
+.fee-proof-shell {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 28px;
+  overflow: auto;
+  background: var(--canvas);
+}
+
+.fee-proof-card {
+  width: min(680px, 100%);
+  padding: 28px;
+  border: 1px solid var(--ink);
+  border-radius: 4px;
+  background: var(--white);
+  box-shadow: 8px 8px 0 var(--yellow);
+}
+
+.fee-proof-back,
+.fee-proof-primary,
+.fee-proof-account,
+.fee-proof-connect,
+.fee-proof-result strong,
+.fee-proof-success,
+.fee-proof-success a {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.fee-proof-back {
+  margin-bottom: 28px;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.fee-proof-card .eyebrow {
+  margin-bottom: 8px;
+}
+
+.fee-proof-card h1 {
+  max-width: 520px;
+  font-size: clamp(32px, 6vw, 48px);
+  line-height: 0.95;
+  letter-spacing: -0.07em;
+}
+
+.fee-proof-summary {
+  max-width: 540px;
+  margin-top: 15px;
+  color: #383d38;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.fee-proof-account {
+  width: 100%;
+  margin-top: 22px;
+  padding: 11px 12px;
+  border: 1px solid var(--border-strong);
+  background: var(--canvas);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.fee-proof-connect {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.fee-proof-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 13px;
+  margin: 22px 0 16px;
+}
+
+.fee-proof-grid label:first-child {
+  grid-column: 1 / -1;
+}
+
+.fee-proof-grid label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.fee-proof-grid input {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 2px;
+  background: var(--white);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.fee-proof-primary {
+  justify-content: center;
+  min-height: 43px;
+  padding: 0 14px;
+  border: 1px solid var(--ink);
+  border-radius: 3px;
+  background: var(--yellow);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.fee-proof-result,
+.fee-proof-success,
+.fee-proof-error {
+  margin-top: 18px;
+  padding: 15px;
+  border: 1px solid var(--border-strong);
+}
+
+.fee-proof-result {
+  background: var(--green-soft);
+}
+
+.fee-proof-result strong,
+.fee-proof-success strong {
+  color: var(--green);
+  font-size: 13px;
+}
+
+.fee-proof-result dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin: 16px 0;
+}
+
+.fee-proof-result dl div {
+  display: grid;
+  gap: 3px;
+}
+
+.fee-proof-result dt {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.fee-proof-result dd {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.fee-proof-consent {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  color: #383d38;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.fee-proof-consent input {
+  width: 16px;
+  height: 16px;
+  margin: 1px 0 0;
+  accent-color: var(--green);
+}
+
+.fee-proof-success {
+  gap: 10px;
+  border-color: var(--green);
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.fee-proof-success > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.fee-proof-success code {
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: 10px;
+}
+
+.fee-proof-success span,
+.fee-proof-success a {
+  color: #383d38;
+  font-size: 11px;
+}
+
+.fee-proof-error {
+  border-color: var(--red);
+  background: var(--red-soft);
+  color: #8a1118;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.fee-proof-footnote {
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.spin {
+  animation: fee-proof-spin 0.9s linear infinite;
+}
+
+@keyframes fee-proof-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 540px) {
+  .fee-proof-shell {
+    padding: 14px;
+  }
+  .fee-proof-card {
+    padding: 20px;
+    box-shadow: 5px 5px 0 var(--yellow);
+  }
+  .fee-proof-grid,
+  .fee-proof-result dl {
+    grid-template-columns: 1fr;
+  }
+}
