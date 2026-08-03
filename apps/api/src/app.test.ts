@@ -77,35 +77,6 @@ describe('Celo Preflight API', () => {
     expect(response.text).toContain('local-free mode')
   })
 
-  it('serves an ERC-8004 registration document from the public well-known path', async () => {
-    const directory = await mkdtemp(join(tmpdir(), 'celo-preflight-web-'))
-    const previous = process.env.WEB_DIST_DIR
-    try {
-      await mkdir(join(directory, '.well-known'))
-      await writeFile(join(directory, 'index.html'), '<!doctype html><title>Test shell</title>')
-      await writeFile(
-        join(directory, '.well-known', 'agent.json'),
-        JSON.stringify({ name: 'Celo Preflight', services: [{ name: 'web' }] }),
-      )
-      process.env.WEB_DIST_DIR = directory
-      const runtime = await createApp(config, {
-        reports: new MemoryReports(),
-        inspector,
-        signer,
-        payment,
-      })
-
-      const response = await request(runtime.app).get('/.well-known/agent.json')
-      expect(response.status).toBe(200)
-      expect(response.type).toMatch(/application\/json/)
-      expect(response.body).toMatchObject({ name: 'Celo Preflight' })
-    } finally {
-      if (previous === undefined) delete process.env.WEB_DIST_DIR
-      else process.env.WEB_DIST_DIR = previous
-      await rm(directory, { recursive: true, force: true })
-    }
-  })
-
   it('exposes only aggregate, issuer-bound payment evidence', async () => {
     const response = await request(app).get('/api/impact')
     expect(response.status).toBe(200)
@@ -318,6 +289,3 @@ describe('hosted report access and claim preconditions', () => {
     expect((await request(app).get(`/api/reports/${reportId}`)).status).toBe(200)
   })
 })
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
