@@ -267,12 +267,14 @@ const [usdcAfter, adapterAfter] = await Promise.all([
     abi: erc20Abi,
     functionName: 'balanceOf',
     args: [account.address],
+    blockNumber: receipt.blockNumber,
   }),
   publicClient.readContract({
     address: feeCurrency,
     abi: adapterAbi,
     functionName: 'balanceOf',
     args: [account.address],
+    blockNumber: receipt.blockNumber,
   }),
 ])
 assert(
@@ -293,6 +295,7 @@ console.log(
       payer: account.address,
       recipient,
       transactionHash: hash,
+      receiptBlockNumber: receipt.blockNumber.toString(),
       gas: gas.toString(),
       usdcTransferBaseUnits: amount.toString(),
       maxFeeUsdcBaseUnits: maxFeeUsdc.toString(),

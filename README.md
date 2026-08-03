@@ -86,27 +86,20 @@ action: MetaMask's Ethereum-compatible Celo transaction format cannot include `f
 gas is paid in CELO rather than USDC. Use this page as live readiness evidence, not execution proof.
 
 The `--broadcast` script mode remains for controlled automation with a secret manager only. Do not
-use it for a human MetaMask account, provide any Mainnet key, or put a wallet key in Railway. A
-future execution proof needs a Celo-native wallet path verified for this exact Celo Sepolia USDC
-adapter; do not substitute a CELO-gas MetaMask transfer.
+use it for a human MetaMask account, provide any Mainnet key, or put a wallet key in Railway. Do
+not substitute a CELO-gas MetaMask transfer for fee-currency evidence.
 
 ### One Celo Sepolia execution proof (manual GitHub Action)
 
-The repository provides a manual-only workflow at **Actions → Celo Sepolia USDC Fee Proof**. It is
-for one fresh, disposable Celo Sepolia account only; it never runs on push, pull request, or a
-schedule. The workflow sends exactly `0.01` test USDC with a maximum fee of `0.01` test USDC, waits
-for the receipt, and records the actual adapter-balance decrease.
+The repository includes a manual-only workflow at **Actions → Celo Sepolia USDC Fee Proof** for a
+fresh, disposable test signer. It never runs on push, pull request, or a schedule. Its completed
+evidence is public: [Celo Sepolia transaction `0xc447…1f77d`](https://celo-sepolia.blockscout.com/tx/0xc447fe95bec618505fa3af5491e7bdadc2a61eadec228c0d5f0be203da31f77d)
+has receipt status `0x1` and Celo CIP-64 type `0x7b`; it transferred exactly `0.01` Circle test
+USDC and charged `0.006335` test USDC through the live USDC fee adapter, within the `0.01` cap.
 
-Before dispatching it, create a fresh account used only for this testnet proof, fund it with exactly
-`0.02` Circle Celo Sepolia USDC, and add these repository **Actions secrets** directly in GitHub:
-
-- `CELO_SEPOLIA_FEE_TEST_ADDRESS` — the fresh account's public address;
-- `CELO_SEPOLIA_FEE_TEST_PRIVATE_KEY` — that account's private key.
-
-Never paste this key into chat, a terminal, Git, Railway, or the product. Set the workflow's
-`recipient` to a different Celo Sepolia address you control and type its exact authorization phrase
-only after giving fresh explicit broadcast authority. The proof account should be considered burned
-after this test; it must never receive Mainnet funds.
+The proof signer is disposable and must not be used again. Its GitHub secrets should be deleted
+after preserving the receipt link. The workflow is retained as auditable source code, not as an
+invitation to reuse a signer or spend funds.
 
 ## Hosted x402 mode
 

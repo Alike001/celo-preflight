@@ -16,6 +16,7 @@ Agents and wallets can construct a Celo transaction, but a user still has to sig
 3. **A deterministic live inspection:** open the product, choose **Run live sample**, then inspect the snapshot block, simulation result, individual rules, raw report, and browser-side signature verification.
 4. **A meaningful unsafe case:** choose **Inspect your transaction**, set `From` to `0x1111111111111111111111111111111111111111`, `To` to Celo USDm `0x765DE816845861e75A25fCA122bb6898B8B1282a`, `Value` to `0`, and calldata to `0x095ea7b30000000000000000000000003333333333333333333333333333333333333333ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff`. The simulated call can succeed, but the published policy deterministically returns `BLOCK`.
 5. **A no-network demo backup:** open `demo/offline/index.html` locally. It is clearly labelled historical recorded evidence and cannot request a payment or broadcast a transaction.
+6. **A real Celo Sepolia fee-currency execution:** [open the CIP-64 transaction](https://celo-sepolia.blockscout.com/tx/0xc447fe95bec618505fa3af5491e7bdadc2a61eadec228c0d5f0be203da31f77d). It transferred exactly `0.01` Circle test USDC while its transaction fee was paid in the same USDC through the live adapter; the receipt is `status: 0x1` and `type: 0x7b`.
 
 ## Celo-specific value
 
@@ -27,4 +28,4 @@ Agents and wallets can construct a Celo transaction, but a user still has to sig
 
 ## Honest boundary
 
-Preflight never broadcasts the transaction it inspects. The separate Celo Sepolia fee-currency page is a read-only readiness check: it proves the live directory, adapter, fee estimate, and test-USDC balance, but MetaMask cannot sign Celo's fee-currency transaction type. It is therefore not presented as a completed fee-currency execution.
+Preflight never broadcasts the transaction it inspects. The separate Celo Sepolia fee-currency page remains a read-only MetaMask readiness check because MetaMask cannot sign Celo's fee-currency transaction type. The separate, manual testnet verifier produced the linked Celo Sepolia CIP-64 execution proof using a fresh disposable signer; it is testnet evidence, not a Mainnet payment claim.
