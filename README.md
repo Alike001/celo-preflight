@@ -45,6 +45,22 @@ Ordinary tests use deterministic doubles and never submit a Celo transaction or 
 replays an existing report at its recorded Celo block, but never prepares a new report, requests
 x402 payment, or broadcasts a transaction.
 
+### Optional Mento local-fork proof
+
+When Anvil is available, this repository can execute the live unsigned USDm → KESm approval and
+swap drafts **only on a local fork**. It refuses any non-local RPC URL and never sends a transaction
+to Celo Mainnet:
+
+```bash
+anvil --fork-url https://forno.celo.org --chain-id 42220 --auto-impersonate --port 8547
+pnpm test:mento-fork
+```
+
+The verifier finds a funded public USDm holder in the forked state, funds it only inside Anvil for
+local gas, confirms the bounded approval, executes the swap, and checks the token balances. This
+proves the Mento contract path—not Celo's node-level fee-currency transaction execution. No local
+fork result is presented as a Mainnet transaction.
+
 ## Hosted x402 mode
 
 Hosted paid claims remain disabled unless the Celo facilitator URL, API key, seller address, and price in [`apps/api/.env.example`](apps/api/.env.example) are configured **and** the facilitator advertises x402 v2 `exact` settlement on `eip155:42220`. Create the API key at [x402.celo.org](https://x402.celo.org) by signing a message with the seller wallet; this is not a transaction and includes initial settlement credits. Add it to Railway only as `X402_FACILITATOR_API_KEY`—never to Git or the browser. Hosted preparation returns a real but unsigned evidence preview before payment, so invalid input or an unavailable RPC cannot charge the user; only an explicit claim asks the wallet to pay and returns a signed report with the real facilitator settlement receipt. A price challenge never reserves a report; a supplied authorization receives a durable single-claim reservation, so concurrent callers cannot settle the same report twice. Invalid 4xx authorizations may retry, while ambiguous facilitator 5xx outcomes stay fail-closed for receipt recovery. Hosted preview creation is limited to 12 requests per forwarded client address per minute, and expired unclaimed reports are retained for 24 hours before deletion; paid reports are preserved as audit evidence.
