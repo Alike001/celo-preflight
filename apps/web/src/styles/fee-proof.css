@@ -183,6 +183,20 @@
   accent-color: var(--green);
 }
 
+.fee-proof-boundary {
+  margin: 0;
+  padding: 11px;
+  border-left: 3px solid var(--amber);
+  background: var(--amber-soft);
+  color: #5f4a00;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.fee-proof-boundary code {
+  font-size: 11px;
+}
+
 .fee-proof-success {
   gap: 10px;
   border-color: var(--green);

@@ -78,15 +78,17 @@ adapter `0xbf1441Ea57f43f35f713431001f35742c88071c7` to token
 pair. The adapter—not the 6-decimal token—is required in `feeCurrency`; it presents its balance in
 normalized 18-decimal units for gas calculations.
 
-For a human-held MetaMask account, use the separate browser-wallet proof page at
+For a human-held MetaMask account, use the separate browser readiness page at
 [`/?testnet-proof=1`](https://celo-preflight-production.up.railway.app/?testnet-proof=1). It has no
-automatic wallet connection, reads the live directory and adapter-priced gas before a wallet prompt,
-requires an explicit in-page authorization statement, and asks MetaMask to sign only the capped Celo
-Sepolia transaction. It then verifies the receipt and the adapter-balance decrease. It never receives
-or asks for a private key.
+automatic wallet connection and reads the live directory, adapter-priced gas, and a connected
+account's test balance without asking for a private key. It deliberately does **not** offer a signing
+action: MetaMask's Ethereum-compatible Celo transaction format cannot include `feeCurrency`, so its
+gas is paid in CELO rather than USDC. Use this page as live readiness evidence, not execution proof.
 
 The `--broadcast` script mode remains for controlled automation with a secret manager only. Do not
-use it for a human MetaMask account, provide any Mainnet key, or put a wallet key in Railway.
+use it for a human MetaMask account, provide any Mainnet key, or put a wallet key in Railway. A
+future execution proof needs a Celo-native wallet path verified for this exact Celo Sepolia USDC
+adapter; do not substitute a CELO-gas MetaMask transfer.
 
 ## Hosted x402 mode
 

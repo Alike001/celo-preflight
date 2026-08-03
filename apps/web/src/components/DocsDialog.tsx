@@ -99,7 +99,7 @@ export function DocsDialog({ open, onClose }: { open: boolean; onClose: () => vo
               View public x402 evidence <ExternalLink aria-hidden size={13} />
             </a>
             <a href="/?testnet-proof=1">
-              Open separate Celo Sepolia fee proof <ExternalLink aria-hidden size={13} />
+              Open separate Celo Sepolia fee check <ExternalLink aria-hidden size={13} />
             </a>
           </section>
         </div>

@@ -199,15 +199,20 @@ test('opens the manual transaction form without an extra route', async ({ page }
   await expect(page.getByRole('textbox', { name: 'From' })).toBeFocused()
 })
 
-test('keeps the Celo Sepolia fee proof isolated and wallet-opt-in', async ({ page }) => {
+test('keeps the Celo Sepolia fee check isolated, wallet-opt-in, and read-only', async ({
+  page,
+}) => {
   await page.goto('/?testnet-proof=1')
 
-  await expect(page.getByRole('heading', { name: 'Celo Sepolia fee-currency proof' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Celo Sepolia fee-currency readiness' }),
+  ).toBeVisible()
   await expect(page.getByRole('button', { name: 'Connect MetaMask' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Check live conditions' })).toBeVisible()
   await expect(
     page.getByRole('button', { name: /Open MetaMask for the capped transaction/i }),
-  ).toBeHidden()
+  ).toHaveCount(0)
+  await expect(page.getByText(/never receives a private key/i)).toBeVisible()
   await expect(page.getByText(/No wallet connection happens automatically/i)).toBeVisible()
 })
 
