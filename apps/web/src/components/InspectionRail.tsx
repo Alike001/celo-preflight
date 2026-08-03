@@ -81,7 +81,7 @@ export function InspectionRail({
             </span>
             <small>
               {reports.length === 0
-                ? 'Run one to build a local evidence history.'
+                ? 'Run one to build an evidence history.'
                 : 'Choose All to view every stored inspection.'}
             </small>
           </div>
@@ -122,7 +122,7 @@ export function InspectionRail({
         </div>
       )}
       <footer className="rail-footer">
-        <span>{reports.length} stored locally</span>
+        <span>{reports.length} stored reports</span>
         <span className="mono">ruleset 1.0.0</span>
       </footer>
     </aside>

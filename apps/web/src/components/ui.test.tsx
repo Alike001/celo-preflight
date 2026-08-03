@@ -118,6 +118,21 @@ describe('Flight Deck controls', () => {
     expect(onRetry).toHaveBeenCalledOnce()
   })
 
+  it('uses storage-neutral wording for persisted report history', () => {
+    render(
+      <InspectionRail
+        reports={[]}
+        filter="ALL"
+        onFilter={vi.fn()}
+        onSelect={vi.fn()}
+        onNew={vi.fn()}
+      />,
+    )
+    expect(screen.getAllByText('0 stored reports')).not.toHaveLength(0)
+    expect(screen.getByText(/build an evidence history/i)).toBeTruthy()
+    expect(screen.queryByText(/stored locally/i)).toBeNull()
+  })
+
   it('does not imply evidence exists before an inspection runs', () => {
     render(<EvidenceInspector landing />)
     expect(screen.getByRole('heading', { name: 'AWAITING LIVE EVIDENCE' })).toBeTruthy()

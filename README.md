@@ -35,12 +35,16 @@ Any failed safety proof produces `BLOCK`. Missing or ambiguous evidence produces
 ```bash
 pnpm verify       # format, lint, types, tests, production builds, file-size policy
 pnpm test:e2e     # desktop and mobile browser smoke tests
+pnpm test:public  # read-only browser smoke against the deployed product; never pays or prepares
 pnpm test:deployed # read-only Railway health, report retrieval, and snapshot-replay smoke check
 pnpm build        # emits apps/web/dist and apps/api/dist/index.js
 pnpm --filter @preflight/api start
 ```
 
 Ordinary tests use deterministic doubles and never submit a Celo transaction or spend funds.
+`pnpm test:e2e` is UI coverage and deliberately mocks `/api/*`; `pnpm test:public` is the separate
+real-browser, read-only deployed check. `pnpm test:coverage:engine` reports coverage only for the
+deterministic rules engine, not the complete frontend/API/payment system.
 `pnpm test:deployed` is intentionally separate from CI: it reads the public Railway service and
 replays an existing report at its recorded Celo block, but never prepares a new report, requests
 x402 payment, or broadcasts a transaction.
