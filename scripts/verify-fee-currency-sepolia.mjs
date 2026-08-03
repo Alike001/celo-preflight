@@ -240,7 +240,9 @@ const serializedTransaction = await signer.signTransaction({
   feeCurrency,
   gas,
   maxFeePerGas: feeGasPrice,
-  maxPriorityFeePerGas: 0n,
+  // Celo Sepolia's current USDC adapter rejects a zero priority fee. One normalized unit is the
+  // protocol minimum and remains far below the separately enforced USDC fee cap.
+  maxPriorityFeePerGas: 1n,
   nonce,
 })
 assert(

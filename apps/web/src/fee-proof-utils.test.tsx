@@ -62,7 +62,7 @@ describe('Celo Sepolia fee proof guards', () => {
       nonce: 0,
       gas: 96_007n,
       maxFeePerGas: 78_750_000_000n,
-      maxPriorityFeePerGas: 0n,
+      maxPriorityFeePerGas: 1n,
       to: CELO_SEPOLIA_USDC,
       data: '0x',
       feeCurrency: '0xbf1441Ea57f43f35f713431001f35742c88071c7',
