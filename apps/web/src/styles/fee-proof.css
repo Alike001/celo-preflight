@@ -1,9 +1,10 @@
 .fee-proof-shell {
   display: grid;
-  min-height: 100vh;
+  height: 100vh;
+  min-height: 0;
   place-items: center;
   padding: 28px;
-  overflow: auto;
+  overflow-y: auto;
   background: var(--canvas);
 }
 
@@ -234,6 +235,7 @@
 
 @media (max-width: 540px) {
   .fee-proof-shell {
+    height: 100dvh;
     padding: 14px;
   }
   .fee-proof-card {
