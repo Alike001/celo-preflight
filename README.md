@@ -61,6 +61,35 @@ local gas, confirms the bounded approval, executes the swap, and checks the toke
 proves the Mento contract path—not Celo's node-level fee-currency transaction execution. No local
 fork result is presented as a Mainnet transaction.
 
+### Optional Celo Sepolia fee-currency proof
+
+The fee-currency verifier defaults to read-only. It confirms the current Celo Sepolia chain ID,
+FeeCurrencyDirectory allowlist, USDC adapter mapping, and adapter-priced gas without using a key:
+
+```bash
+pnpm test:fee-currency-sepolia
+```
+
+The verifier treats the live `FeeCurrencyDirectory` as the source of truth and checks the adapter's
+`adaptedToken()` before constructing anything. This matters because Celo documentation currently has
+conflicting Sepolia USDC pairs: the live directory at the time this verifier was added mapped
+adapter `0xbf1441Ea57f43f35f713431001f35742c88071c7` to token
+`0x01C5C0122039549AD1493B8220cABEdD739BC44E`, while another documentation page listed a different
+pair. The adapter—not the 6-decimal token—is required in `feeCurrency`; it presents its balance in
+normalized 18-decimal units for gas calculations.
+
+Only after explicitly authorizing one testnet transaction should you export a dedicated Celo Sepolia
+key, a different testnet recipient, a positive USDC transfer amount, and a maximum USDC fee in base
+units, then run:
+
+```bash
+pnpm test:fee-currency-sepolia --broadcast
+```
+
+The script refuses any chain other than Celo Sepolia, requires both transfer and fee caps, estimates
+the adapter-priced gas before signing, and proves the adapter balance decreased after the successful
+receipt. Never provide a Mainnet key or place this key in Railway.
+
 ## Hosted x402 mode
 
 Hosted paid claims remain disabled unless the Celo facilitator URL, API key, seller address, and price in [`apps/api/.env.example`](apps/api/.env.example) are configured **and** the facilitator advertises x402 v2 `exact` settlement on `eip155:42220`. Create the API key at [x402.celo.org](https://x402.celo.org) by signing a message with the seller wallet; this is not a transaction and includes initial settlement credits. Add it to Railway only as `X402_FACILITATOR_API_KEY`—never to Git or the browser. Hosted preparation returns a real but unsigned evidence preview before payment, so invalid input or an unavailable RPC cannot charge the user; only an explicit claim asks the wallet to pay and returns a signed report with the real facilitator settlement receipt. A price challenge never reserves a report; a supplied authorization receives a durable single-claim reservation, so concurrent callers cannot settle the same report twice. Invalid 4xx authorizations may retry, while ambiguous facilitator 5xx outcomes stay fail-closed for receipt recovery. Hosted preview creation is limited to 12 requests per forwarded client address per minute, and expired unclaimed reports are retained for 24 hours before deletion; paid reports are preserved as audit evidence.

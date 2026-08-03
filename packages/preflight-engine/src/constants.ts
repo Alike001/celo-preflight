@@ -27,4 +27,6 @@ export const VERIFIED_ERC20_TOKENS: Partial<Record<SupportedChainId, readonly Ad
     '0x765DE816845861e75A25fCA122bb6898B8B1282a', // USDm
     '0xcebA9300f2b948710d2653dD7B07f33A8B32118C', // native Celo USDC
   ],
+  // Celo Sepolia's current USDC token as verified through its live FeeCurrencyDirectory adapter.
+  11142220: ['0x01C5C0122039549AD1493B8220cABEdD739BC44E'],
 }

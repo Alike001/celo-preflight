@@ -100,6 +100,19 @@ describe('deterministic evaluation', () => {
     )
   })
 
+  it('recognizes the live Celo Sepolia USDC token as an explicitly verified token', () => {
+    const token = '0x01C5C0122039549AD1493B8220cABEdD739BC44E' as const
+    const facts = baseFacts({
+      transaction: { ...baseFacts().transaction, chainId: 11142220, to: token },
+      simulation: { status: 'success', returnData: `0x${'0'.repeat(63)}1` },
+      decoded: { kind: 'erc20-transfer', token, recipient: address('3'), amount: '1' },
+    })
+    expect(check(facts, 'TOKEN_IDENTITY')).toMatchObject({ status: 'PASS' })
+    expect(evaluateInspection(facts, { requiredAttributionCode: assignedCode }).verdict).toBe(
+      'CLEAR',
+    )
+  })
+
   it.each([
     [`0x${'0'.repeat(63)}1`, 'PASS', 'CLEAR'],
     [`0x${'0'.repeat(64)}`, 'FAIL', 'BLOCK'],

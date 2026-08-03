@@ -17,6 +17,7 @@
     "test:e2e": "pnpm --filter @preflight/web test:e2e",
     "test:deployed": "node scripts/smoke-deployed.mjs",
     "test:mento-fork": "node scripts/verify-mento-fork.mjs",
+    "test:fee-currency-sepolia": "node scripts/verify-fee-currency-sepolia.mjs",
     "demo:capture": "pnpm --filter @preflight/web demo:capture && pnpm exec prettier --write demo",
     "build": "pnpm -r build",
     "files:check": "node scripts/check-file-size.mjs",
