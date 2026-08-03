@@ -71,13 +71,29 @@ async function findFundedHolder(client, blockNumber) {
   throw new Error('Could not find a funded USDm holder in the latest 1,000 forked Celo blocks.')
 }
 
-function toRpcTransaction(draft) {
+function hex(value) {
+  return `0x${value.toString(16)}`
+}
+
+async function toRpcTransaction(client, draft) {
+  // Anvil keeps the fork's EIP-1559 base fee. A draft built against an earlier
+  // block can otherwise become underpriced after the approval is mined, leaving
+  // the local swap pending forever. Read fees immediately before each local send.
+  const [block, fees] = await Promise.all([client.getBlock(), client.estimateFeesPerGas()])
+  const priorityFee = fees.maxPriorityFeePerGas ?? 1_000_000_000n
+  const minimumMaxFee = (block.baseFeePerGas ?? 0n) * 2n + priorityFee
+  const maxFeePerGas = [fees.maxFeePerGas ?? 0n, minimumMaxFee].reduce((highest, candidate) =>
+    candidate > highest ? candidate : highest,
+  )
+
   return {
     from: draft.from,
     to: draft.to,
     data: draft.data,
-    value: `0x${BigInt(draft.valueWei).toString(16)}`,
+    value: hex(BigInt(draft.valueWei)),
     gas: '0x7a120',
+    maxFeePerGas: hex(maxFeePerGas),
+    maxPriorityFeePerGas: hex(priorityFee),
   }
 }
 
@@ -110,7 +126,7 @@ const before = await Promise.all([
 
 const approvalHash = await client.request({
   method: 'eth_sendTransaction',
-  params: [toRpcTransaction(proposal.approval)],
+  params: [await toRpcTransaction(client, proposal.approval)],
 })
 const approvalReceipt = await client.waitForTransactionReceipt({ hash: approvalHash })
 assert(approvalReceipt.status === 'success', 'The local-fork USDm approval reverted.')
@@ -124,7 +140,7 @@ assert(allowance >= amountIn, 'The local-fork approval did not grant the quoted 
 
 const swapHash = await client.request({
   method: 'eth_sendTransaction',
-  params: [toRpcTransaction(proposal.transaction)],
+  params: [await toRpcTransaction(client, proposal.transaction)],
 })
 const swapReceipt = await client.waitForTransactionReceipt({ hash: swapHash })
 assert(swapReceipt.status === 'success', 'The local-fork Mento swap reverted.')
