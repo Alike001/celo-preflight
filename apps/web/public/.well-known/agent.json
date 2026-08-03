@@ -1,0 +1,20 @@
+{
+  "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+  "name": "Celo Preflight",
+  "description": "Celo Preflight is a deterministic pre-sign safety inspector for unsigned Celo transactions. It simulates a proposal at a recorded Celo block, applies published Celo-specific rules, and exposes evidence-backed CLEAR, CAUTION, or BLOCK reports. It never broadcasts the transaction it inspects.",
+  "image": "https://celo-preflight-production.up.railway.app/favicon.svg",
+  "services": [
+    {
+      "name": "web",
+      "endpoint": "https://celo-preflight-production.up.railway.app/"
+    },
+    {
+      "name": "OpenAPI",
+      "endpoint": "https://celo-preflight-production.up.railway.app/api/openapi.json"
+    },
+    {
+      "name": "agent quickstart",
+      "endpoint": "https://celo-preflight-production.up.railway.app/api/agent.md"
+    }
+  ]
+}

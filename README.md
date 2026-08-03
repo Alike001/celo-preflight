@@ -113,6 +113,8 @@ Hosted paid claims remain disabled unless the Celo facilitator URL, API key, sel
 
 Agents can start with the deployed [integration quickstart](https://celo-preflight-production.up.railway.app/api/agent.md) and [OpenAPI contract](https://celo-preflight-production.up.railway.app/api/openapi.json). The flow is deliberately narrow: prepare an unsigned proposal, claim its fresh signed report once through x402 when hosted mode requires it, then use the verdict as a pre-sign policy gate. Preflight never submits the proposed transaction.
 
+The public [ERC-8004 registration document](https://celo-preflight-production.up.railway.app/.well-known/agent.json) describes the same live web product and agent endpoints. Its URI is suitable for the Celo ERC-8004 Identity Registry; the owner must still explicitly approve the separate onchain registration transaction in their wallet.
+
 The public [impact endpoint](https://celo-preflight-production.up.railway.app/api/impact) publishes aggregate issuer-bound claim and distinct-payer counts only. It does not expose payer addresses, private payment authorizations, or claim a unique-human count; settled-report retries return the existing report, while a simultaneous in-progress claim is rejected before it can authorize another settlement.
 
 ## Railway deployment
