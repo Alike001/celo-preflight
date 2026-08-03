@@ -1,0 +1,12 @@
+{
+  "capturedAt": "2026-08-03T08:18:47.636Z",
+  "source": "https://celo-preflight-production.up.railway.app",
+  "reportId": "0x365498b23e1440cd64deee68d6ebb9af25e9ea0c6329ec918ded8f920f7e8854",
+  "operations": ["GET /api/reports/:id", "POST /api/reports/:id/replay"],
+  "writes": "local demo artifacts only",
+  "chainWrites": "none",
+  "paymentRequests": "none",
+  "reportVerdict": "CLEAR",
+  "snapshotBlock": "73550150",
+  "settlementTransaction": "0x6d2152f52e93adb106143a4911f2b636f5c3a85efbcb2dd981bc20d092e5d741"
+}

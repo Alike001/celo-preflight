@@ -8,6 +8,7 @@
     "dev": "vite --host 127.0.0.1",
     "preview": "vite preview --host 127.0.0.1",
     "test:e2e": "playwright test",
+    "demo:capture": "node scripts/capture-demo.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

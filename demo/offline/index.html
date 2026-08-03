@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Celo Preflight — recorded evidence fallback</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        color: #111;
+        background: #f6f6f1;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+      }
+      main {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 36px 24px 60px;
+      }
+      header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        border-bottom: 2px solid #111;
+        padding-bottom: 24px;
+      }
+      .brand {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        font-weight: 800;
+      }
+      .mark {
+        background: #ffe300;
+        border: 1px solid #111;
+        padding: 8px;
+      }
+      h1 {
+        font-family: Arial, sans-serif;
+        margin: 38px 0 8px;
+        font-size: clamp(32px, 6vw, 64px);
+        letter-spacing: -0.06em;
+        line-height: 0.95;
+      }
+      .notice {
+        margin: 26px 0;
+        padding: 16px;
+        border-left: 5px solid #16803c;
+        background: #e7f5e9;
+      }
+      .notice strong {
+        display: block;
+        margin-bottom: 5px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      section {
+        background: #fff;
+        border: 1px solid #c6c6be;
+        padding: 20px;
+      }
+      h2 {
+        font:
+          700 13px/1 ui-monospace,
+          monospace;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin: 0 0 18px;
+      }
+      dl {
+        margin: 0;
+      }
+      dt {
+        color: #5d5d57;
+        font-size: 12px;
+        margin-top: 14px;
+      }
+      dd {
+        margin: 4px 0 0;
+        overflow-wrap: anywhere;
+        font-weight: 700;
+      }
+      .verdict {
+        font:
+          800 clamp(28px, 5vw, 48px)/1 Arial,
+          sans-serif;
+        margin: 0;
+      }
+      .clear {
+        color: #117a37;
+      }
+      code {
+        background: #ecece6;
+        padding: 2px 4px;
+        overflow-wrap: anywhere;
+      }
+      pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        background: #111;
+        color: #e8f3e9;
+        padding: 16px;
+        max-height: 320px;
+        overflow: auto;
+      }
+      footer {
+        margin-top: 24px;
+        color: #555;
+        font-size: 12px;
+      }
+      @media (max-width: 720px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        header {
+          display: block;
+        }
+      }
+    </style>
+    <script src="../evidence/evidence.js"></script>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div class="brand"><span class="mark">CP</span> Celo Preflight</div>
+        <small>offline fallback</small>
+      </header>
+      <h1>Recorded, issuer-bound Celo evidence.</h1>
+      <div class="notice">
+        <strong>Recorded evidence — no internet required.</strong
+        ><span id="notice">Loading the locally saved report and replay…</span>
+      </div>
+      <div class="grid">
+        <section>
+          <h2>Verdict at recorded state</h2>
+          <p class="verdict" id="verdict">—</p>
+          <dl id="report-facts"></dl>
+        </section>
+        <section>
+          <h2>x402 settlement receipt</h2>
+          <dl id="payment-facts"></dl>
+        </section>
+        <section>
+          <h2>Replay evidence</h2>
+          <dl id="replay-facts"></dl>
+        </section>
+        <section>
+          <h2>What this proves</h2>
+          <p>
+            This is a local, read-only copy of an already settled report and its exact-block replay.
+            It does not create a report, request a wallet signature, request a payment, or broadcast
+            a transaction.
+          </p>
+          <p>
+            Use the live product for a fresh inspection; use this file only if internet access fails
+            during the presentation.
+          </p>
+        </section>
+      </div>
+      <section style="margin-top: 16px">
+        <h2>Recorded source manifest</h2>
+        <pre id="manifest"></pre>
+      </section>
+      <footer>
+        Open <code>demo/offline/index.html</code> directly in a browser. The data is a static local
+        copy captured by <code>pnpm demo:capture</code>.
+      </footer>
+    </main>
+    <script>
+      const e = window.PREFLIGHT_RECORDED_EVIDENCE
+      const setFacts = (id, entries) =>
+        document.getElementById(id).replaceChildren(
+          ...entries.flatMap(([label, value]) => {
+            const dt = document.createElement('dt')
+            dt.textContent = label
+            const dd = document.createElement('dd')
+            dd.textContent = value ?? '—'
+            return [dt, dd]
+          }),
+        )
+      if (!e) {
+        document.getElementById('notice').textContent =
+          'Evidence file is missing. Run pnpm demo:capture while online, then reopen this file offline.'
+      } else {
+        const { report, replay, manifest } = e
+        const verdict = document.getElementById('verdict')
+        verdict.textContent = `${report.verdict} — historical`
+        verdict.className = `verdict ${report.verdict === 'CLEAR' ? 'clear' : ''}`
+        document.getElementById('notice').textContent =
+          `Captured ${new Date(manifest.capturedAt).toLocaleString()} from ${manifest.source}. This historical verdict is not signing guidance.`
+        setFacts('report-facts', [
+          ['Report ID', report.id],
+          ['Recorded Celo block', String(report.facts.snapshot.blockNumber)],
+          ['Ruleset', report.rulesetVersion],
+          ['Issuer', report.issuer],
+          ['Report signature', report.signature],
+        ])
+        const baseUnits = BigInt(report.payment.amount)
+        const amount = `${baseUnits / 1_000_000n}.${
+          String(baseUnits % 1_000_000n)
+            .padStart(6, '0')
+            .replace(/0+$/, '') || '0'
+        } USDC (${report.payment.amount} base units)`
+        setFacts('payment-facts', [
+          ['Network', report.payment.network],
+          ['Amount', amount],
+          ['Transaction', report.payment.transactionHash],
+          ['Receipt binding', report.paymentSignature ? 'Issuer-bound' : 'Legacy / unbound'],
+        ])
+        setFacts('replay-facts', [
+          ['Replay snapshot block', String(replay.facts.snapshot.blockNumber)],
+          ['Replay verdict', replay.verdict],
+          ['Replay gas estimate', String(replay.facts.simulation.gasEstimate ?? 'unavailable')],
+          ['Original request hash', report.requestHash],
+        ])
+        document.getElementById('manifest').textContent = JSON.stringify(manifest, null, 2)
+      }
+    </script>
+  </body>
+</html>
