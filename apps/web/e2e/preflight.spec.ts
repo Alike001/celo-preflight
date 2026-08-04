@@ -197,6 +197,10 @@ test('opens the manual transaction form without an extra route', async ({ page }
   await page.getByRole('button', { name: 'Inspect your transaction' }).click()
   await expect(page.getByRole('heading', { name: 'Inspect before you sign' })).toBeVisible()
   await expect(page.getByRole('textbox', { name: 'From' })).toBeFocused()
+  await page.getByRole('button', { name: 'Back to overview' }).click()
+  await expect(
+    page.getByRole('heading', { name: 'Know what a Celo transaction will do before you sign.' }),
+  ).toBeVisible()
 })
 
 test('keeps the Celo Sepolia fee check isolated, wallet-opt-in, and read-only', async ({

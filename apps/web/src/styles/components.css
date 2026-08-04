@@ -183,6 +183,25 @@
   line-height: 1.55;
 }
 
+.back-to-overview {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0 0 9px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.back-to-overview:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
 .form-tools {
   display: flex;
   gap: 6px;

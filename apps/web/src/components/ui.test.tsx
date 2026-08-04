@@ -164,6 +164,7 @@ describe('Flight Deck controls', () => {
         onSubmit={vi.fn()}
         onSample={vi.fn()}
         onReset={vi.fn()}
+        onBackToOverview={vi.fn()}
       />,
     )
     expect(screen.getByRole('button', { name: /run local preflight/i })).toBeTruthy()
@@ -185,6 +186,7 @@ describe('Flight Deck controls', () => {
         onSubmit={vi.fn()}
         onSample={vi.fn()}
         onReset={vi.fn()}
+        onBackToOverview={vi.fn()}
       />,
     )
     expect(within(container).getByRole('button', { name: /run preflight/i })).toBeTruthy()
@@ -224,6 +226,7 @@ describe('Flight Deck controls', () => {
         claimPrice="$0.02"
         onSample={vi.fn()}
         onReset={vi.fn()}
+        onBackToOverview={vi.fn()}
       />,
     )
     expect(

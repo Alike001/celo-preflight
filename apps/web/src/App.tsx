@@ -51,6 +51,13 @@ export function App() {
       setStatusMessage(undefined)
     })
   }
+
+  function returnToOverview() {
+    shouldFocusForm.current = false
+    setShowLanding(true)
+    setStatus('idle')
+    setStatusMessage(undefined)
+  }
   useEffect(() => {
     if (!showLanding && shouldFocusForm.current && fromRef.current) {
       fromRef.current.focus()
@@ -232,6 +239,7 @@ export function App() {
             setStatusMessage('Sample input loaded. Review it, then explicitly run preflight.')
           }}
           onInspect={newInspection}
+          onBackToOverview={returnToOverview}
           {...(freshVerifiedReportId
             ? { onViewVerified: () => void selectReport(freshVerifiedReportId) }
             : historicalPaidReportId

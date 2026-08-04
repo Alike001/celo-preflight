@@ -22,6 +22,7 @@ interface CenterPaneProps {
   landingEvidenceState: 'loading' | 'unavailable' | 'historical-only' | 'none'
   onLoadSample: () => void
   onInspect: () => void
+  onBackToOverview: () => void
   onViewVerified?: (() => void) | undefined
   onViewHistorical?: (() => void) | undefined
   onChange: (transaction: TransactionDraft) => void
@@ -50,6 +51,7 @@ export function CenterPane({
   landingEvidenceState,
   onLoadSample,
   onInspect,
+  onBackToOverview,
   onViewVerified,
   onViewHistorical,
   onChange,
@@ -86,6 +88,7 @@ export function CenterPane({
               : {})}
             onSample={onSample}
             onReset={onReset}
+            onBackToOverview={onBackToOverview}
             connectedAddress={connectedAddress}
             onUseConnectedAddress={onUseConnectedAddress}
             onBuildMento={onBuildMento}

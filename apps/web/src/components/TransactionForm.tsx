@@ -1,5 +1,6 @@
 import {
   Braces,
+  ArrowLeft,
   FileInput,
   FlaskConical,
   Landmark,
@@ -32,6 +33,7 @@ export interface TransactionFormProps {
   claimPrice?: string | undefined
   onSample: () => void
   onReset: () => void
+  onBackToOverview: () => void
   connectedAddress?: `0x${string}` | undefined
   onUseConnectedAddress?: (address: `0x${string}`) => void
   onBuildMento?: () => void
@@ -61,6 +63,7 @@ export const TransactionForm = forwardRef<HTMLInputElement, TransactionFormProps
       claimPrice,
       onSample,
       onReset,
+      onBackToOverview,
       connectedAddress,
       onUseConnectedAddress,
       onBuildMento,
@@ -79,6 +82,9 @@ export const TransactionForm = forwardRef<HTMLInputElement, TransactionFormProps
       <section className="transaction-section" aria-labelledby="transaction-heading">
         <div className="section-heading">
           <div>
+            <button className="back-to-overview" type="button" onClick={onBackToOverview}>
+              <ArrowLeft aria-hidden size={14} /> Back to overview
+            </button>
             <span className="eyebrow">Unsigned transaction</span>
             <h2 id="transaction-heading">Inspect before you sign</h2>
           </div>
